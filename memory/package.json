@@ -1,0 +1,15 @@
+{
+  "name": "@umhlawati/memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Obsidian-vault-backed long-term memory: parse notes and rank them with BM25.",
+  "main": "memory-store.js",
+  "scripts": {
+    "test": "node test.js",
+    "query": "node cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

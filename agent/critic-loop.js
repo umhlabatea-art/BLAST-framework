@@ -38,10 +38,13 @@ async function loadCriticPrompt() {
   }
 }
 
-async function generateDraft(provider, task) {
+async function generateDraft(provider, task, context) {
+  const contextBlock = context
+    ? `Relevant project knowledge (from memory):\n${context}\n\n`
+    : "";
   return provider.complete({
     system: "You are a senior engineer. Produce only the code requested, no prose.",
-    user: `Task:\n${task}\n\nWrite the implementation.`,
+    user: `${contextBlock}Task:\n${task}\n\nWrite the implementation.`,
   });
 }
 
@@ -54,13 +57,16 @@ async function critique(provider, criticPrompt, task, draft) {
   return extractJson(raw);
 }
 
-async function revise(provider, task, draft, issues) {
+async function revise(provider, task, draft, issues, context) {
   const issueList = (issues || [])
     .map((i) => `- [${i.severity}] ${i.location}: ${i.problem} -> ${i.fix}`)
     .join("\n");
+  const contextBlock = context
+    ? `Relevant project knowledge (from memory):\n${context}\n\n`
+    : "";
   return provider.complete({
     system: "You are a senior engineer. Apply the fixes and return only the corrected code.",
-    user: `Task:\n${task}\n\nCurrent code:\n\`\`\`\n${draft}\n\`\`\`\n\nIssues to fix:\n${issueList}\n\nReturn the revised code.`,
+    user: `${contextBlock}Task:\n${task}\n\nCurrent code:\n\`\`\`\n${draft}\n\`\`\`\n\nIssues to fix:\n${issueList}\n\nReturn the revised code.`,
   });
 }
 
@@ -68,6 +74,7 @@ async function revise(provider, task, draft, issues) {
  * @param {object}   opts
  * @param {object}   opts.provider       provider with .complete()
  * @param {string}   opts.task           the task to implement
+ * @param {string}   [opts.context]      grounding context (e.g. recalled memory)
  * @param {number}   [opts.maxIterations=3]
  * @param {function} [opts.onIteration]  callback({ iteration, verdict })
  * @returns {Promise<{ code: string, verdict: object, iterations: number, passed: boolean }>}
@@ -75,6 +82,7 @@ async function revise(provider, task, draft, issues) {
 export async function runCriticLoop({
   provider,
   task,
+  context = "",
   maxIterations = 3,
   onIteration,
 }) {
@@ -82,7 +90,7 @@ export async function runCriticLoop({
   if (!task || !task.trim()) throw new Error("task is required");
 
   const criticPrompt = await loadCriticPrompt();
-  let draft = await generateDraft(provider, task);
+  let draft = await generateDraft(provider, task, context);
   let lastVerdict = null;
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
@@ -93,7 +101,7 @@ export async function runCriticLoop({
     if (verdict.verdict === "pass") {
       return { code: draft, verdict, iterations: iteration, passed: true };
     }
-    draft = await revise(provider, task, draft, verdict.issues);
+    draft = await revise(provider, task, draft, verdict.issues, context);
   }
 
   return {
