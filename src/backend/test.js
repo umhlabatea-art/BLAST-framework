@@ -288,6 +288,19 @@ async function runCrmFlow(label, store) {
     assert.equal(bulk.json.imported, 2, "two valid rows imported");
     assert.equal(bulk.json.errors.length, 1, "one invalid row reported");
 
+    // Enrich a lead (business email -> company guess + hot score)
+    const enriched = await api("POST", `/api/leads/${leadId}/enrich`, { token });
+    assert.equal(enriched.json.enrichment.domain, "acme.io");
+    assert.ok(enriched.json.enrichment.score >= 70, "business lead scores hot");
+
+    // Export the owner's leads to Instantly (stub mode here)
+    const exp = await api("POST", "/api/leads/export/instantly", { token, body: { campaignId: "camp-1" } });
+    assert.equal(exp.json.mode, "stub");
+    assert.ok(exp.json.exported >= 2, "leads with email are exported");
+    assert.ok(exp.json.skipped >= 1, "lead without email is skipped");
+    const noCampaign = await api("POST", "/api/leads/export/instantly", { token, body: {} });
+    assert.equal(noCampaign.status, 400, "export requires campaignId");
+
     // Ownership isolation: another user cannot see this lead
     const regB = await api("POST", "/api/auth/register", {
       body: { email: `crm-${label}-b@umhlawati.io`, password: "supersecret1" },

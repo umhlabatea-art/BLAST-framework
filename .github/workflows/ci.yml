@@ -29,6 +29,14 @@ jobs:
         working-directory: routines
         run: node test.js
 
+      - name: CRM tests
+        working-directory: crm
+        run: node test.js
+
+      - name: Chat tests
+        working-directory: chat
+        run: node test.js
+
       # Suites with dependencies
       - name: MCP server (install + smoke)
         working-directory: mcp-server

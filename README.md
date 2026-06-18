@@ -23,6 +23,8 @@ umhlawati/
 │   └── memory-context.js     recalls vault notes to ground tasks
 ├── memory/              # Phase 5 — Obsidian-vault long-term memory (BM25/vector/hybrid)
 ├── routines/            # Phase 7 — cron-scheduled Hermes jobs (24/7 agents)
+├── crm/                 # Phase 8 — enrichment, Instantly export, follow-up digest
+├── chat/                # Phase 8 — chat front-end (router + Discord adapter)
 ├── src/                 # Phase 4 — BLAST application
 │   ├── backend/              Express API: JWT auth + Stripe + leads/CRM
 │   └── frontend/             minimal vanilla-JS client
@@ -123,6 +125,37 @@ Status lifecycle: `new → contacted → qualified → won/lost` (transitions ar
 validated; `won`/`lost` are terminal). Follow-ups are computed from a cadence
 (days after creation), so the UI/agent can surface the next action.
 
+### Enrichment & outbound (Instantly)
+
+- `POST /api/leads/:id/enrich` — derive domain, business-vs-free, a 0-100 score,
+  and tags; fills in `company` when discovered.
+- `POST /api/leads/export/instantly` — enrich + push leads to an Instantly
+  campaign (stub unless `INSTANTLY_API_KEY` is set).
+- CLI: `node crm/enrich-export-cli.js <campaignId>`.
+
+### CRM → routines bridge (morning digest)
+
+`node crm/digest-cli.js` scans all leads, finds overdue follow-ups, and writes a
+**"Next Actions"** note to the vault under `crm/`. Schedule it via system cron:
+
+```cron
+0 8 * * 1-5  cd /repo && MEMORY_VAULT=~/vault node crm/digest-cli.js
+```
+
+## Chat front-end
+
+Drive Hermes and the CRM from chat. The command router is transport-agnostic; a
+**Discord** adapter ships in `chat/` (Slack reuses the same router).
+
+```bash
+DISCORD_BOT_TOKEN=... node chat/cli.js
+```
+
+Commands: `!hermes <task>` (replies in a thread, result saved to the vault),
+`!leads [status]`, `!lead add <name> | <email> | <company>`,
+`!lead status <id> <status>`, `!followups`, `!help`. Leads created in chat share
+the same store as the API.
+
 ## Status
 
 | Phase | Component        | Verified                                               |
@@ -130,10 +163,11 @@ validated; `won`/`lost` are terminal). Follow-ups are computed from a cadence
 | 1     | Foundation       | files in place                                         |
 | 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox)                  |
 | 3     | Agent            | 7/7 tests pass; Hermes self-corrects + recalls         |
-| 4     | BLAST app + CRM  | 12/12 backend tests pass (in-memory + Postgres + Stripe + leads) |
-| 5     | Memory (Obsidian)| 25/25 tests pass; bm25/vector/hybrid + Pinecone + router + ingest |
+| 4     | BLAST app + CRM  | 12/12 backend tests (in-memory + Postgres + Stripe + leads + export) |
+| 5     | Memory (Obsidian)| 25/25 tests; bm25/vector/hybrid + Pinecone + router + ingest |
 | 6     | Deploy           | Dockerfile builds; compose + Vercel configs            |
-| 7     | Routines         | 10/10 tests pass; cron engine + scheduler + vault logging |
+| 7     | Routines         | 10/10 tests; cron engine + scheduler + vault logging   |
+| 8     | CRM tooling + Chat | 9/9 CRM + 8/8 chat tests; enrichment, Instantly, digest, Discord |
 
 CI runs all suites (and a Docker image build) on every push and pull request; a
 pre-commit hook runs the tests locally before each commit (`npm run setup:hooks`).

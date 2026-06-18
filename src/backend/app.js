@@ -22,6 +22,8 @@ import {
   isValidStatus,
   computeFollowUps,
 } from "./leads.js";
+import { enrichLead } from "../../crm/enrich.js";
+import { createInstantlyExporter } from "../../crm/instantly.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,9 +36,10 @@ function publicUser(user) {
  * @param {object} [opts.store]    data store (defaults to in-memory)
  * @param {object} [opts.payments] payments client (defaults to env-configured)
  */
-export async function createApp({ store, payments } = {}) {
+export async function createApp({ store, payments, instantly } = {}) {
   const db = store || createInMemoryStore();
   const pay = payments || (await createPayments());
+  const exporter = instantly || (await createInstantlyExporter());
 
   const app = express();
 
@@ -221,6 +224,37 @@ export async function createApp({ store, payments } = {}) {
     const lead = await loadOwnedLead(req, res);
     if (!lead) return;
     res.json(computeFollowUps(lead));
+  });
+
+  // Enrich a single lead; fills in company when discovered and returns the
+  // derived attributes (domain, business flag, score, tags).
+  app.post("/api/leads/:id/enrich", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    const enrichment = enrichLead(lead);
+    if (!lead.company && enrichment.companyGuess) {
+      await db.updateLead(lead.id, { company: enrichment.companyGuess });
+    }
+    res.json({ enrichment, lead: await db.findLeadById(lead.id) });
+  });
+
+  // Enrich and export the caller's leads to an Instantly campaign.
+  // Body: { campaignId, status? }. Stub unless INSTANTLY_API_KEY is configured.
+  app.post("/api/leads/export/instantly", requireAuth, async (req, res) => {
+    const { campaignId, status } = req.body || {};
+    if (!campaignId) return res.status(400).json({ error: "campaignId is required" });
+    if (status && !isValidStatus(status)) {
+      return res.status(400).json({ error: `invalid status filter: ${status}` });
+    }
+    try {
+      const leads = await db.listLeads(req.user.sub, { status });
+      const enrichments = {};
+      for (const lead of leads) enrichments[lead.id] = enrichLead(lead);
+      const result = await exporter.exportLeads(campaignId, leads, enrichments);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   });
 
   return app;

@@ -1,0 +1,17 @@
+{
+  "name": "@umhlawati/chat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chat front-end for Hermes + CRM (transport-agnostic router + Discord adapter).",
+  "scripts": {
+    "test": "node test.js",
+    "start": "node cli.js"
+  },
+  "optionalDependencies": {
+    "discord.js": "^14.15.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

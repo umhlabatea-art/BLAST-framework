@@ -197,6 +197,14 @@ export function createPostgresStore({ pool }) {
       return rows.map(mapLead);
     },
 
+    async listAllLeads() {
+      const { rows } = await pool.query(
+        `SELECT id, owner_id, name, email, company, source, status, created_at
+           FROM leads ORDER BY created_at ASC`
+      );
+      return rows.map(mapLead);
+    },
+
     async findLeadById(id) {
       const { rows } = await pool.query(
         `SELECT id, owner_id, name, email, company, source, status, created_at

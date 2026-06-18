@@ -1,0 +1,15 @@
+{
+  "name": "@umhlawati/crm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CRM tooling: lead enrichment, Instantly export, and the follow-up digest (CRM -> routines bridge).",
+  "scripts": {
+    "test": "node test.js",
+    "digest": "node digest-cli.js",
+    "export": "node enrich-export-cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

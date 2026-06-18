@@ -97,6 +97,10 @@ export function createInMemoryStore() {
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     },
 
+    async listAllLeads() {
+      return [...leads.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    },
+
     async findLeadById(id) {
       return leads.get(id) || null;
     },

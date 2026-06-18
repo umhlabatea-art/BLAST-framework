@@ -13,32 +13,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApp } from "./app.js";
-import { createInMemoryStore } from "./store.js";
+import { buildStore } from "./build-store.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
 
-async function buildStore() {
-  if (!process.env.DATABASE_URL) {
-    console.log("[blast] store: in-memory (set DATABASE_URL for Postgres/Supabase)");
-    return createInMemoryStore();
-  }
-  // Lazy-load pg + the Postgres store only when a database is configured.
-  const { default: pg } = await import("pg");
-  const { createPostgresStore } = await import("./store-postgres.js");
-  const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-    // Supabase and most managed Postgres require SSL.
-    ssl: process.env.PGSSL === "disable" ? false : { rejectUnauthorized: false },
-  });
-  const store = createPostgresStore({ pool });
-  await store.init();
-  console.log("[blast] store: PostgreSQL/Supabase (schema ensured)");
-  return store;
-}
-
 async function main() {
-  const store = await buildStore();
+  const store = await buildStore(process.env, { log: (m) => console.log(`[blast] ${m}`) });
   const app = await createApp({ store });
 
   // Serve the minimal frontend from ../frontend at the site root.
