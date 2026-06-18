@@ -11,6 +11,20 @@ import { createApp } from "./app.js";
 import { createInMemoryStore } from "./store.js";
 import { createPostgresStore } from "./store-postgres.js";
 import { createPayments } from "./payments.js";
+import {
+  canTransition,
+  normalizeLeadInput,
+  computeFollowUps,
+  LEAD_STATUSES,
+} from "./leads.js";
+
+async function makePgStore() {
+  const db = newDb();
+  const pg = db.adapters.createPg();
+  const store = createPostgresStore({ pool: new pg.Pool() });
+  await store.init();
+  return store;
+}
 
 let passed = 0;
 const ok = (name) => { console.log(`  ok - ${name}`); passed++; };
@@ -191,5 +205,102 @@ await runFlow("in-memory", createInMemoryStore());
   });
   ok("live payments: app wires checkout to Stripe and enforces webhook signatures");
 }
+
+// --- CRM: lead domain logic (pure) --------------------------------------
+{
+  assert.equal(canTransition("new", "contacted"), true);
+  assert.equal(canTransition("contacted", "new"), false, "no backward to new");
+  assert.equal(canTransition("won", "lost"), false, "won is terminal");
+  assert.equal(canTransition("new", "new"), true, "idempotent");
+  ok("lead status transitions are validated");
+
+  assert.throws(() => normalizeLeadInput({}), /name is required/);
+  assert.throws(() => normalizeLeadInput({ name: "A", email: "nope" }), /email is invalid/);
+  const norm = normalizeLeadInput({ name: "  Acme  ", email: "X@Y.COM" });
+  assert.equal(norm.email, "x@y.com", "email normalized");
+  assert.equal(norm.status, "new", "defaults to new");
+  ok("lead input is normalized and validated");
+
+  const fresh = computeFollowUps(
+    { status: "new", createdAt: "2026-06-15T00:00:00.000Z" },
+    { now: new Date("2026-06-16T00:00:00.000Z") }
+  );
+  assert.equal(fresh.schedule.length, 4, "default cadence has 4 steps");
+  assert.ok(fresh.next, "an upcoming follow-up exists");
+  const won = computeFollowUps({ status: "won", createdAt: "2026-06-15T00:00:00.000Z" });
+  assert.equal(won.next, null, "terminal leads have no follow-ups");
+  ok("follow-up cadence computes a schedule and skips terminal leads");
+
+  assert.deepEqual(LEAD_STATUSES, ["new", "contacted", "qualified", "won", "lost"]);
+  ok("lead statuses are stable");
+}
+
+// --- CRM: full API flow against a store ---------------------------------
+async function runCrmFlow(label, store) {
+  const app = await createApp({ store });
+  await withServer(app, async (api) => {
+    const regA = await api("POST", "/api/auth/register", {
+      body: { email: `crm-${label}@umhlawati.io`, password: "supersecret1" },
+    });
+    const token = regA.json.token;
+
+    // Create + fetch
+    const created = await api("POST", "/api/leads", {
+      token,
+      body: { name: "Acme Corp", email: "buyer@acme.io", company: "Acme", source: "linkedin" },
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.json.lead.status, "new");
+    const leadId = created.json.lead.id;
+
+    // Validation: missing name
+    const badCreate = await api("POST", "/api/leads", { token, body: { email: "x@y.com" } });
+    assert.equal(badCreate.status, 400);
+
+    // List + status filter
+    const list = await api("GET", "/api/leads", { token });
+    assert.equal(list.json.leads.length, 1);
+    const filtered = await api("GET", "/api/leads?status=won", { token });
+    assert.equal(filtered.json.leads.length, 0, "filter excludes non-won");
+
+    // Valid transition new -> contacted
+    const moved = await api("PATCH", `/api/leads/${leadId}`, { token, body: { status: "contacted" } });
+    assert.equal(moved.json.lead.status, "contacted");
+    // Invalid transition contacted -> new
+    const badMove = await api("PATCH", `/api/leads/${leadId}`, { token, body: { status: "new" } });
+    assert.equal(badMove.status, 400, "illegal transition rejected");
+
+    // Notes
+    const note = await api("POST", `/api/leads/${leadId}/notes`, { token, body: { body: "Left a voicemail." } });
+    assert.equal(note.status, 201);
+    const notes = await api("GET", `/api/leads/${leadId}/notes`, { token });
+    assert.equal(notes.json.notes.length, 1);
+
+    // Follow-ups
+    const fu = await api("GET", `/api/leads/${leadId}/followups`, { token });
+    assert.ok(Array.isArray(fu.json.schedule) && fu.json.schedule.length > 0, "follow-up schedule returned");
+
+    // Bulk import (seed): 2 valid + 1 invalid
+    const bulk = await api("POST", "/api/leads/bulk", {
+      token,
+      body: { leads: [{ name: "Beta" }, { name: "Gamma", email: "g@gamma.io" }, { email: "noname@x.io" }] },
+    });
+    assert.equal(bulk.json.imported, 2, "two valid rows imported");
+    assert.equal(bulk.json.errors.length, 1, "one invalid row reported");
+
+    // Ownership isolation: another user cannot see this lead
+    const regB = await api("POST", "/api/auth/register", {
+      body: { email: `crm-${label}-b@umhlawati.io`, password: "supersecret1" },
+    });
+    const other = await api("GET", `/api/leads/${leadId}`, { token: regB.json.token });
+    assert.equal(other.status, 404, "leads are private to their owner");
+    const bList = await api("GET", "/api/leads", { token: regB.json.token });
+    assert.equal(bList.json.leads.length, 0, "other user sees none of them");
+  });
+  ok(`${label} store: full CRM lead flow (create/list/transition/notes/followups/bulk/ownership)`);
+}
+
+await runCrmFlow("in-memory", createInMemoryStore());
+await runCrmFlow("postgres", await makePgStore());
 
 console.log(`\nAll ${passed} backend tests passed.`);

@@ -21,9 +21,10 @@ umhlawati/
 ├── mcp-server/          # Phase 2 — sandboxed MCP server (stdio)
 ├── agent/               # Phase 3 — Hermes orchestrator + critic loop
 │   └── memory-context.js     recalls vault notes to ground tasks
-├── memory/              # Phase 5 — Obsidian-vault long-term memory (BM25)
+├── memory/              # Phase 5 — Obsidian-vault long-term memory (BM25/vector/hybrid)
+├── routines/            # Phase 7 — cron-scheduled Hermes jobs (24/7 agents)
 ├── src/                 # Phase 4 — BLAST application
-│   ├── backend/              Express API: JWT auth + Stripe-stub payments
+│   ├── backend/              Express API: JWT auth + Stripe + leads/CRM
 │   └── frontend/             minimal vanilla-JS client
 ├── .githooks/           # pre-commit hook: runs the test suites
 └── .github/workflows/   # CI: runs every suite on push / PR
@@ -90,6 +91,38 @@ container. `docker compose up --build` brings up PostgreSQL + the app at
 `http://localhost:3000`. See [`DEPLOY.md`](DEPLOY.md) for the full-stack and
 split (Vercel frontend + hosted API) options.
 
+## Routines (scheduled agents)
+
+Run Hermes tasks on cron schedules — outcomes are logged back to the vault.
+
+```bash
+node routines/cli.js list                 # show configured routines + next run
+node routines/cli.js run-due              # run anything due now (wire to system cron)
+node routines/cli.js start                # in-process scheduler (once a minute)
+```
+
+Define routines in `routines/routines.json` (`name`, `schedule` cron, `task`).
+The cron engine supports `*`, lists, ranges, and steps. With `MEMORY_VAULT` set,
+each run writes an Obsidian note under `routines/`.
+
+## CRM (leads)
+
+The BLAST API includes a lead pipeline scoped to the authenticated user:
+
+| Method | Route | Purpose |
+| ------ | ----- | ------- |
+| POST   | `/api/leads`            | create a lead |
+| POST   | `/api/leads/bulk`       | seed/import many (per-row errors reported) |
+| GET    | `/api/leads?status=`    | list (optional status filter) |
+| GET    | `/api/leads/:id`        | fetch one (owner-only) |
+| PATCH  | `/api/leads/:id`        | update fields / validated status transition |
+| POST   | `/api/leads/:id/notes`  | append a note |
+| GET    | `/api/leads/:id/followups` | computed follow-up cadence |
+
+Status lifecycle: `new → contacted → qualified → won/lost` (transitions are
+validated; `won`/`lost` are terminal). Follow-ups are computed from a cadence
+(days after creation), so the UI/agent can surface the next action.
+
 ## Status
 
 | Phase | Component        | Verified                                               |
@@ -97,9 +130,10 @@ split (Vercel frontend + hosted API) options.
 | 1     | Foundation       | files in place                                         |
 | 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox)                  |
 | 3     | Agent            | 7/7 tests pass; Hermes self-corrects + recalls         |
-| 4     | BLAST app        | 6/6 backend tests pass (in-memory + Postgres + Stripe) |
+| 4     | BLAST app + CRM  | 12/12 backend tests pass (in-memory + Postgres + Stripe + leads) |
 | 5     | Memory (Obsidian)| 25/25 tests pass; bm25/vector/hybrid + Pinecone + router + ingest |
 | 6     | Deploy           | Dockerfile builds; compose + Vercel configs            |
+| 7     | Routines         | 10/10 tests pass; cron engine + scheduler + vault logging |
 
 CI runs all suites (and a Docker image build) on every push and pull request; a
 pre-commit hook runs the tests locally before each commit (`npm run setup:hooks`).

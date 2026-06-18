@@ -21,3 +21,24 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments (user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_session_id ON payments (session_id);
+
+CREATE TABLE IF NOT EXISTS leads (
+  id          UUID PRIMARY KEY,
+  owner_id    UUID NOT NULL,
+  name        TEXT NOT NULL,
+  email       TEXT,
+  company     TEXT,
+  source      TEXT,
+  status      TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS lead_notes (
+  id          UUID PRIMARY KEY,
+  lead_id     UUID NOT NULL,
+  body        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_owner_id ON leads (owner_id);
+CREATE INDEX IF NOT EXISTS idx_lead_notes_lead_id ON lead_notes (lead_id);

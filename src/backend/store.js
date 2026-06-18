@@ -17,6 +17,8 @@ export function createInMemoryStore() {
   const usersById = new Map();
   const usersByEmail = new Map();
   const payments = new Map();
+  const leads = new Map();
+  const leadNotes = new Map(); // leadId -> [{ id, body, createdAt }]
 
   return {
     async createUser({ email, passwordHash }) {
@@ -70,6 +72,52 @@ export function createInMemoryStore() {
       if (!payment) return null;
       payment.status = status;
       return payment;
+    },
+
+    // --- CRM: leads ---
+    async createLead({ ownerId, name, email, company, source, status }) {
+      const lead = {
+        id: crypto.randomUUID(),
+        ownerId,
+        name,
+        email,
+        company,
+        source,
+        status,
+        createdAt: new Date().toISOString(),
+      };
+      leads.set(lead.id, lead);
+      leadNotes.set(lead.id, []);
+      return lead;
+    },
+
+    async listLeads(ownerId, { status } = {}) {
+      return [...leads.values()]
+        .filter((l) => l.ownerId === ownerId && (!status || l.status === status))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    },
+
+    async findLeadById(id) {
+      return leads.get(id) || null;
+    },
+
+    async updateLead(id, patch) {
+      const lead = leads.get(id);
+      if (!lead) return null;
+      Object.assign(lead, patch);
+      return lead;
+    },
+
+    async addLeadNote(leadId, body) {
+      const note = { id: crypto.randomUUID(), body, createdAt: new Date().toISOString() };
+      const list = leadNotes.get(leadId) || [];
+      list.push(note);
+      leadNotes.set(leadId, list);
+      return note;
+    },
+
+    async listLeadNotes(leadId) {
+      return [...(leadNotes.get(leadId) || [])];
     },
   };
 }

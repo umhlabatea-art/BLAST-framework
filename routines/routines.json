@@ -1,0 +1,16 @@
+[
+  {
+    "name": "daily-standup-notes",
+    "schedule": "0 9 * * 1-5",
+    "task": "Summarize yesterday's git commits into a short standup update.",
+    "tags": ["reporting"],
+    "enabled": true
+  },
+  {
+    "name": "weekly-dependency-check",
+    "schedule": "0 8 * * 1",
+    "task": "List project dependencies that have newer versions and flag security advisories.",
+    "tags": ["maintenance"],
+    "enabled": true
+  }
+]
