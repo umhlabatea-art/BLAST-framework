@@ -1,0 +1,28 @@
+# Render Blueprint: a Dockerized web service + a managed PostgreSQL database.
+# Deploy by pushing this repo and choosing "New > Blueprint" in the Render
+# dashboard (or via the Render CLI). AUTH_SECRET is generated; DATABASE_URL is
+# wired from the database automatically. Set APP_URL after the first deploy.
+services:
+  - type: web
+    name: umhlawati-blast
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: umhlawati-db
+          property: connectionString
+      - key: APP_URL
+        sync: false
+      # Optional live payments — set in the dashboard:
+      # - key: STRIPE_SECRET_KEY
+      # - key: STRIPE_WEBHOOK_SECRET
+
+databases:
+  - name: umhlawati-db
+    plan: free

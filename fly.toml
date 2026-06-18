@@ -1,0 +1,35 @@
+# Fly.io deploy config for the BLAST app (API + frontend in one container).
+#
+# First-time deploy:
+#   fly launch --no-deploy --copy-config --name umhlawati-blast
+#   fly postgres create --name umhlawati-db                 # managed Postgres
+#   fly postgres attach umhlawati-db                        # sets DATABASE_URL secret
+#   fly secrets set AUTH_SECRET=$(openssl rand -hex 32)
+#   # optional live payments:
+#   fly secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_...
+#   fly deploy
+#
+# `fly postgres attach` injects DATABASE_URL automatically; the app applies the
+# schema on startup.
+
+app = "umhlawati-blast"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  APP_URL = "https://umhlawati-blast.fly.dev"
+  # Fly Postgres requires TLS; the app enables SSL unless PGSSL=disable.
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
