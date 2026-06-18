@@ -1,0 +1,14 @@
+{
+  "name": "@umhlawati/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hermes orchestrator + autonomous critic loop with a pluggable LLM provider.",
+  "scripts": {
+    "hermes": "node hermes.js",
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

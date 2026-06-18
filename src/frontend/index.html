@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Umhlawati — BLAST Demo</title>
+  <meta name="description" content="Umhlawati BLAST app: auth + payments demo." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Umhlawati <span>BLAST</span></h1>
+    <p class="sub">Backend · Logic · Auth · Storage · Transactions</p>
+
+    <section id="auth-section">
+      <h2>Account</h2>
+      <form id="auth-form">
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required />
+        <input id="password" type="password" placeholder="password (min 8 chars)" autocomplete="current-password" required />
+        <div class="row">
+          <button type="submit" data-action="register">Register</button>
+          <button type="button" id="login-btn" data-action="login">Log in</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="app-section" hidden>
+      <h2>Welcome, <span id="user-email"></span></h2>
+      <div class="row">
+        <button id="checkout-btn">Buy OHS Starter Pack — $29.99</button>
+        <button id="logout-btn" class="ghost">Log out</button>
+      </div>
+      <h3>Your payments</h3>
+      <ul id="payments"></ul>
+    </section>
+
+    <pre id="log" aria-live="polite"></pre>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

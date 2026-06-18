@@ -1,0 +1,73 @@
+:root {
+  --bg: #0b0d16;
+  --card: #141826;
+  --border: #262b3d;
+  --text: #f4f4f5;
+  --muted: #9aa0b0;
+  --accent: #ff6b35;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.card {
+  width: min(520px, 100%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+}
+h1 { font-size: 32px; letter-spacing: -0.02em; }
+h1 span { color: var(--accent); }
+.sub { color: #9aa0b0; font-size: 13px; margin: 4px 0 24px; letter-spacing: 0.04em; }
+h2 { font-size: 18px; margin: 20px 0 12px; }
+h3 { font-size: 14px; margin: 20px 0 8px; color: #9aa0b0; }
+input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: #0e1120;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #111;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+button:hover { filter: brightness(1.08); }
+#payments { list-style: none; }
+#payments li {
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.status-paid { color: #22c55e; }
+.status-pending { color: #fbbf24; }
+#log {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #6b7280;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
