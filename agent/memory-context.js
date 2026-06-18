@@ -16,7 +16,9 @@ export async function recallContext({ vaultPath, query, limit = 3, maxChars = 15
   if (!vaultPath) return { context: "", hits: [] };
 
   const memory = await createObsidianMemory({ vaultPath });
-  const allHits = memory.search(query, { limit });
+  // Awaited so this works whether the backend's search is sync (bm25) or async
+  // (vector/hybrid) — awaiting a plain value simply returns it.
+  const allHits = await memory.search(query, { limit });
   if (allHits.length === 0) return { context: "", hits: [] };
 
   // Relevance guard: drop hits that score far below the top match. A single

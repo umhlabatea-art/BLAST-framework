@@ -64,5 +64,12 @@ export function createInMemoryStore() {
     async findPaymentBySession(sessionId) {
       return [...payments.values()].find((p) => p.sessionId === sessionId) || null;
     },
+
+    async markPaymentStatus(sessionId, status) {
+      const payment = [...payments.values()].find((p) => p.sessionId === sessionId);
+      if (!payment) return null;
+      payment.status = status;
+      return payment;
+    },
   };
 }
