@@ -28,10 +28,10 @@ async function main() {
   const memory = await createObsidianMemory({ vaultPath });
   const stats = memory.stats();
   console.error(
-    `[memory] indexed ${stats.notes} notes / ${stats.terms} terms from ${vaultPath}\n`
+    `[memory] indexed ${stats.notes} notes (backend: ${memory.backend}) from ${vaultPath}\n`
   );
 
-  const results = memory.search(query, { limit });
+  const results = await memory.search(query, { limit });
   if (results.length === 0) {
     console.log(`No matches for "${query}".`);
     return;

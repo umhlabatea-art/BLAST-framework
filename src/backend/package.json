@@ -3,14 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BLAST backend: Express API with JWT auth and Stripe-stub payments.",
+  "description": "BLAST backend: Express API with JWT auth, Stripe payments, and a Postgres/Supabase or in-memory store.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node test.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "optionalDependencies": {
+    "stripe": "^16.0.0"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.5"
   },
   "engines": {
     "node": ">=18"

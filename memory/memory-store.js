@@ -13,6 +13,8 @@
  *   mem.stats()                   -> { notes, terms, avgDocLength }
  */
 import { loadVault } from "./vault.js";
+import { createEmbedder } from "./embeddings.js";
+import { createVectorMemory, createVectorMemoryFromNotes } from "./vector-memory.js";
 
 // BM25 free parameters (standard defaults).
 const K1 = 1.5; // term-frequency saturation
@@ -39,7 +41,7 @@ export function tokenize(text) {
  * Build the searchable text for a note. Title and tags are repeated so matches
  * there carry more weight than matches deep in the body.
  */
-function buildDocumentText(note) {
+export function buildDocumentText(note) {
   const titleBoost = `${note.title} ${note.title} ${note.title}`;
   const tagBoost = note.tags.map((t) => `${t} ${t}`).join(" ");
   return `${titleBoost} ${tagBoost} ${note.body}`;
@@ -136,19 +138,93 @@ export function createMemoryFromNotes(notes) {
 
 /**
  * Create a memory backed by an Obsidian vault on disk.
- * @param {{ vaultPath: string }} opts
+ *
+ * @param {object}  opts
+ * @param {string}  opts.vaultPath
+ * @param {string}  [opts.backend]   "bm25" (default) | "vector" | "hybrid".
+ *                                    Falls back to MEMORY_BACKEND env var.
+ * @param {object}  [opts.embedder]  custom embedder for vector/hybrid backends.
  */
-export async function createObsidianMemory({ vaultPath }) {
+export async function createObsidianMemory({ vaultPath, backend, embedder } = {}) {
   if (!vaultPath) throw new Error("vaultPath is required");
-  const notes = await loadVault(vaultPath);
-  const memory = createMemoryFromNotes(notes);
-  return {
-    ...memory,
-    vaultPath,
-    async reindex() {
-      const fresh = await loadVault(vaultPath);
-      memory._replace(fresh);
-      return memory.stats();
-    },
-  };
+  const mode = (backend || process.env.MEMORY_BACKEND || "bm25").toLowerCase();
+
+  if (mode === "bm25") {
+    const notes = await loadVault(vaultPath);
+    const memory = createMemoryFromNotes(notes);
+    return {
+      ...memory,
+      vaultPath,
+      backend: "bm25",
+      async reindex() {
+        const fresh = await loadVault(vaultPath);
+        memory._replace(fresh);
+        return memory.stats();
+      },
+    };
+  }
+
+  if (mode === "vector") {
+    const emb = embedder || createEmbedder();
+    const memory = await createVectorMemory({ vaultPath, embedder: emb });
+    return { ...memory, backend: "vector" };
+  }
+
+  if (mode === "hybrid") {
+    const emb = embedder || createEmbedder();
+    let notes = await loadVault(vaultPath);
+    let bm25 = createMemoryFromNotes(notes);
+    let vec = await createVectorMemoryFromNotes(notes, emb);
+    let byId = new Map(notes.map((n) => [n.id, n]));
+
+    // Normalize a result list to [0,1] by its own max score.
+    const normalize = (list) => {
+      const max = list.reduce((m, x) => Math.max(m, x.score), 0) || 1;
+      return new Map(list.map((x) => [x.id, x.score / max]));
+    };
+
+    async function search(query, { limit = 5 } = {}) {
+      if (!query || !query.trim()) return [];
+      const wide = limit * 3;
+      const bList = bm25.search(query, { limit: wide });
+      const vList = await vec.search(query, { limit: wide });
+      const bn = normalize(bList);
+      const vn = normalize(vList);
+      const snippetById = new Map(
+        [...vList, ...bList].map((x) => [x.id, x.snippet])
+      );
+      const ids = new Set([...bn.keys(), ...vn.keys()]);
+      const merged = [...ids].map((id) => {
+        const note = byId.get(id);
+        const score = 0.5 * (bn.get(id) || 0) + 0.5 * (vn.get(id) || 0);
+        return {
+          id,
+          title: note ? note.title : id,
+          tags: note ? note.tags : [],
+          score: Number(score.toFixed(4)),
+          snippet: snippetById.get(id) || "",
+        };
+      });
+      merged.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+      return merged.slice(0, limit);
+    }
+
+    return {
+      search,
+      get: (id) => byId.get(id) || null,
+      all: () => notes.slice(),
+      stats: () => ({ notes: notes.length, backend: "hybrid", embedder: emb.name }),
+      vaultPath,
+      backend: "hybrid",
+      async reindex() {
+        notes = await loadVault(vaultPath);
+        bm25 = createMemoryFromNotes(notes);
+        vec = await createVectorMemoryFromNotes(notes, emb);
+        byId = new Map(notes.map((n) => [n.id, n]));
+        return this.stats();
+      },
+    };
+  }
+
+  throw new Error(`Unknown memory backend: ${mode} (use bm25 | vector | hybrid)`);
 }
