@@ -16,6 +16,8 @@ ENV NODE_ENV=production \
 COPY --from=deps /app/src/backend/node_modules ./src/backend/node_modules
 COPY src/backend ./src/backend
 COPY src/frontend ./src/frontend
+# The API imports lead enrichment + Instantly export from crm/ (../../crm/*).
+COPY crm ./crm
 USER node
 EXPOSE 3000
 WORKDIR /app/src/backend

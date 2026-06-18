@@ -46,6 +46,33 @@ docker run -p 3000:3000 -e AUTH_SECRET=$(openssl rand -hex 32) umhlawati-blast
    With that rewrite in place the frontend's relative `/api` calls reach the
    deployed backend.
 
+## Option C — Managed cloud (Fly.io or Render)
+
+Config files are included for one-command deploys.
+
+### Fly.io (`fly.toml`)
+
+```bash
+fly launch --no-deploy --copy-config --name umhlawati-blast
+fly postgres create --name umhlawati-db
+fly postgres attach umhlawati-db          # injects DATABASE_URL
+fly secrets set AUTH_SECRET=$(openssl rand -hex 32)
+# optional live payments:
+fly secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_...
+fly deploy
+```
+
+Fly builds the `Dockerfile`, attaches managed Postgres, and the app applies the
+schema on first boot. Your app is then live at `https://umhlawati-blast.fly.dev`.
+
+### Render (`render.yaml`)
+
+Push the repo, then in the Render dashboard choose **New → Blueprint** and select
+this repo (or use the Render CLI). The blueprint provisions a Dockerized web
+service **plus a managed PostgreSQL database**, generates `AUTH_SECRET`, and
+wires `DATABASE_URL` automatically. Set `APP_URL` to the assigned URL after the
+first deploy.
+
 ## Database
 
 - Local/dev: omit `DATABASE_URL` to use the in-memory store (no DB needed).
