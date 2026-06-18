@@ -74,6 +74,29 @@ async function main() {
     `\n[hermes] ${result.passed ? "PASSED" : "stopped (budget reached)"} after ${result.iterations} iteration(s).\n`
   );
 
+  // Auto-ingest: persist this outcome back into the vault for future recall.
+  // Enabled with MEMORY_AUTOSAVE=1 (or true/yes) and a configured vault.
+  if (vaultPath && /^(1|true|yes)$/i.test(process.env.MEMORY_AUTOSAVE || "")) {
+    try {
+      const { writeNote } = await import("../memory/ingest.js");
+      const saved = await writeNote({
+        vaultPath,
+        subdir: "hermes",
+        title: `Task: ${task.slice(0, 60)}`,
+        tags: ["hermes", "auto", result.passed ? "passed" : "unfinished"],
+        frontmatter: { iterations: result.iterations, passed: result.passed },
+        body:
+          `## Task\n${task}\n\n` +
+          `## Outcome\n${result.verdict?.summary || "n/a"} ` +
+          `(score ${result.verdict?.score ?? "n/a"})\n\n` +
+          `## Result\n\`\`\`\n${result.code}\n\`\`\`\n`,
+      });
+      console.error(`[hermes] saved note to vault: ${saved.id}`);
+    } catch (err) {
+      console.error(`[hermes] could not save note: ${err.message}`);
+    }
+  }
+
   // The final artifact goes to stdout so it can be piped/redirected.
   process.stdout.write(result.code + "\n");
 }

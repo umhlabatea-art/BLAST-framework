@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "src/frontend",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://YOUR-API-HOST/api/$1"
+    }
+  ]
+}

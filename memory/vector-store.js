@@ -18,6 +18,9 @@ export function createVectorStore() {
     upsert(id, vector, payload = {}) {
       items.set(id, { vector, payload });
     },
+    upsertMany(records) {
+      for (const r of records) items.set(r.id, { vector: r.vector, payload: r.payload || {} });
+    },
     delete(id) {
       items.delete(id);
     },

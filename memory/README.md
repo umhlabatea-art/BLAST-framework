@@ -99,6 +99,27 @@ relevant notes are sent.
 ## Scaling further
 
 The bundled vector store is an in-memory cosine index — fine for a personal
-vault (thousands of notes). For very large corpora or shared/hosted recall,
-swap it for a managed vector DB (e.g. Pinecone) behind the same
-`upsert()/query()` API; the memory and router layers won't change.
+vault (thousands of notes). For larger corpora or shared/hosted recall across
+machines, set `VECTOR_STORE=pinecone` (with `PINECONE_API_KEY` + `PINECONE_INDEX`)
+to use a managed index behind the **same** `upsert()/query()` API — the memory
+and router layers don't change.
+
+## Writing back to the vault (auto-ingest)
+
+`writeNote()` persists a well-formed Obsidian note (frontmatter + body, with
+de-duplicated filenames):
+
+```js
+import { writeNote } from "./memory/ingest.js";
+await writeNote({
+  vaultPath: "/path/to/vault",
+  subdir: "hermes",
+  title: "Refund SLA decision",
+  tags: ["payments", "decision"],
+  body: "Refunds must be issued within 24h of request.",
+});
+```
+
+Hermes does this automatically when `MEMORY_AUTOSAVE=1` and a vault is
+configured — every completed task is saved under `hermes/` for future recall,
+closing the memory loop.

@@ -1,0 +1,10 @@
+# Keep the build context small and prevent host node_modules from clobbering
+# the dependencies installed in the build stage.
+**/node_modules
+.git
+.github
+*.log
+.env
+.env.*
+memory/fixtures
+**/test.js
