@@ -3,10 +3,50 @@
  * No network, no API keys. Exits non-zero on failure.
  */
 import assert from "node:assert/strict";
+import os from "node:os";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadVault, parseNote, parseFrontmatter } from "./vault.js";
 import { createObsidianMemory, tokenize } from "./memory-store.js";
+import { writeNote } from "./ingest.js";
+import { createEmbedder, cosineSimilarity } from "./embeddings.js";
+import { createMemoryRouter } from "./memory-router.js";
+import { createPineconeStore } from "./pinecone-store.js";
+
+/** A fake Pinecone client backed by an in-memory map + real cosine ranking. */
+function makeFakePinecone() {
+  const namespaces = new Map();
+  const nsMap = (n) => {
+    if (!namespaces.has(n)) namespaces.set(n, new Map());
+    return namespaces.get(n);
+  };
+  return {
+    index() {
+      return {
+        namespace(n) {
+          const m = nsMap(n);
+          return {
+            async upsert(recs) {
+              for (const r of recs) m.set(r.id, { values: r.values, metadata: r.metadata });
+            },
+            async deleteOne(id) { m.delete(id); },
+            async deleteAll() { m.clear(); },
+            async query({ topK, vector }) {
+              const scored = [...m.entries()].map(([id, v]) => ({
+                id,
+                score: cosineSimilarity(vector, v.values),
+                metadata: v.metadata,
+              }));
+              scored.sort((a, b) => b.score - a.score);
+              return { matches: scored.slice(0, topK) };
+            },
+          };
+        },
+      };
+    },
+  };
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const VAULT = path.join(here, "fixtures", "vault");
@@ -100,6 +140,147 @@ let notes;
     /not a directory/
   );
   ok("createObsidianMemory validates its inputs");
+}
+
+// --- embeddings ----------------------------------------------------------
+{
+  const embedder = createEmbedder({ EMBEDDING_PROVIDER: "mock" });
+  const [a, b, c] = await embedder.embed([
+    "stripe payment checkout webhook",
+    "stripe payment refund processing",
+    "boil pasta with garlic and oil",
+  ]);
+  assert.equal(a.length, embedder.dimension, "embedding has provider dimension");
+  const simAB = cosineSimilarity(a, b);
+  const simAC = cosineSimilarity(a, c);
+  assert.ok(simAB > simAC, "payment texts are more similar than payment vs pasta");
+  ok("mock embedder produces comparable vectors");
+
+  assert.throws(() => createEmbedder({ EMBEDDING_PROVIDER: "nope" }), /Unknown EMBEDDING_PROVIDER/);
+  ok("unknown embedding provider is rejected");
+}
+
+// --- vector backend ------------------------------------------------------
+{
+  const embedder = createEmbedder({ EMBEDDING_PROVIDER: "mock" });
+  const mem = await createObsidianMemory({ vaultPath: VAULT, backend: "vector", embedder });
+  assert.equal(mem.backend, "vector");
+  assert.equal(mem.stats().notes, 4);
+  const hits = await mem.search("payment processing and webhooks", { limit: 2 });
+  assert.equal(hits[0].title, "Stripe Integration", "vector search ranks Stripe note first");
+  assert.ok(mem.get(hits[0].id).body.includes("Checkout"), "get returns full note");
+  ok("vector backend ranks the Stripe note top");
+}
+
+// --- hybrid backend ------------------------------------------------------
+{
+  const embedder = createEmbedder({ EMBEDDING_PROVIDER: "mock" });
+  const mem = await createObsidianMemory({ vaultPath: VAULT, backend: "hybrid", embedder });
+  assert.equal(mem.backend, "hybrid");
+  const hits = await mem.search("jwt token authentication", { limit: 2 });
+  assert.equal(hits[0].title, "Auth Patterns", "hybrid search ranks Auth note first");
+  ok("hybrid backend merges BM25 + vector scores");
+
+  await assert.rejects(
+    () => createObsidianMemory({ vaultPath: VAULT, backend: "nonsense" }),
+    /Unknown memory backend/
+  );
+  ok("unknown memory backend is rejected");
+}
+
+// --- 3-level memory router ----------------------------------------------
+{
+  const longterm = await createObsidianMemory({ vaultPath: VAULT, backend: "bm25" });
+  const router = createMemoryRouter({ longterm });
+
+  // With only long-term, recall returns vault notes tagged with the level.
+  const ltHits = await router.recall("stripe webhook", { limit: 2 });
+  assert.ok(ltHits.length > 0, "router recalls from long-term");
+  assert.equal(ltHits[0].level, "longterm");
+  ok("router recalls from the long-term tier");
+
+  // Add a session/context memory; it should outrank long-term for the same topic.
+  router.remember("Decision: refunds must be issued within 24h of request.", {
+    title: "Refund SLA decision",
+    tags: ["payments"],
+  });
+  const merged = await router.recall("refund policy timing", { limit: 3 });
+  assert.equal(merged[0].level, "context", "recent context outranks long-term");
+  ok("context tier is weighted above long-term");
+
+  const stats = router.stats();
+  assert.equal(stats.context, 1);
+  assert.ok(stats.longterm, "router reports long-term stats");
+  ok("router reports per-tier stats");
+}
+
+// --- pinecone-backed vector store (fake client, offline) ----------------
+{
+  const embedder = createEmbedder({ EMBEDDING_PROVIDER: "mock" });
+  const pine = await createPineconeStore({
+    client: makeFakePinecone(),
+    indexName: "test-index",
+    namespace: "test",
+  });
+  const mem = await createObsidianMemory({
+    vaultPath: VAULT,
+    backend: "vector",
+    embedder,
+    vectorStore: pine,
+  });
+  const hits = await mem.search("payment webhook checkout", { limit: 2 });
+  assert.equal(hits[0].title, "Stripe Integration", "pinecone-backed search ranks Stripe note first");
+  ok("vector memory works over a (fake) Pinecone store");
+
+  // reindex clears + re-upserts through the store without error
+  const stats = await mem.reindex();
+  assert.equal(stats.notes, 4);
+  ok("reindex works against the Pinecone store");
+
+  await assert.rejects(
+    () => createPineconeStore({ client: makeFakePinecone() }),
+    /PINECONE_INDEX is required/
+  );
+  ok("pinecone store requires an index name");
+}
+
+// --- auto-ingest (write notes back into a vault) -------------------------
+{
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "umhlawati-vault-"));
+  try {
+    const a = await writeNote({
+      vaultPath: tmp,
+      subdir: "hermes",
+      title: "Refund SLA decision",
+      tags: ["payments", "decision"],
+      frontmatter: { passed: true },
+      body: "Refunds must be issued within 24h of request.",
+    });
+    assert.ok(a.id.startsWith("hermes/"), "note written into subdir");
+
+    // Same title again must not overwrite — it gets a de-duplicated filename.
+    const b = await writeNote({
+      vaultPath: tmp,
+      subdir: "hermes",
+      title: "Refund SLA decision",
+      body: "Second version of the decision.",
+    });
+    assert.notEqual(a.filename, b.filename, "duplicate title produces a new file");
+    ok("writeNote creates notes and de-duplicates filenames");
+
+    // The written notes round-trip through the vault loader.
+    const notes = await loadVault(tmp);
+    assert.equal(notes.length, 2, "both written notes are loadable");
+    const first = notes.find((n) => n.id === a.id);
+    assert.ok(first.tags.includes("payments"), "frontmatter tags parsed back");
+    assert.equal(first.frontmatter.passed, "true", "extra frontmatter persisted");
+    ok("written notes round-trip through loadVault");
+
+    await assert.rejects(() => writeNote({ vaultPath: tmp, title: "", body: "x" }), /title is required/);
+    ok("writeNote validates its inputs");
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
 }
 
 console.log(`\nAll ${passed} memory tests passed.`);

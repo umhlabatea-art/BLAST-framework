@@ -1,0 +1,36 @@
+# Full BLAST stack: PostgreSQL + the API (which also serves the frontend).
+#   docker compose up --build   ->  http://localhost:3000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: umhlawati
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/umhlawati
+      PGSSL: disable
+      AUTH_SECRET: change-me-in-production
+      APP_URL: http://localhost:3000
+      # To enable live payments, also set STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET
+      # and add `stripe` to the backend dependencies.
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
