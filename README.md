@@ -76,19 +76,30 @@ notes). Choose a ranking backend with `MEMORY_BACKEND`:
 - `vector` — semantic similarity via pluggable embeddings (`mock`/`openai`/`ollama`).
 - `hybrid` — a blend of both.
 
-A 3-level **memory router** (Context · Project · Long-term) merges and weights
-recall across tiers. Set `MEMORY_VAULT` (or `OBSIDIAN_VAULT`) and Hermes recalls
-relevant notes to ground each task. See [`memory/README.md`](memory/README.md).
+The vector index is in-memory by default; set `VECTOR_STORE=pinecone` for hosted
+recall. With `MEMORY_AUTOSAVE=1`, Hermes writes each completed task back into the
+vault, closing the memory loop. A 3-level **memory router** (Context · Project ·
+Long-term) merges and weights recall across tiers. Set `MEMORY_VAULT` (or
+`OBSIDIAN_VAULT`) and Hermes recalls relevant notes to ground each task. See
+[`memory/README.md`](memory/README.md).
+
+## Deployment
+
+The backend serves the API **and** the static frontend, so the app ships as one
+container. `docker compose up --build` brings up PostgreSQL + the app at
+`http://localhost:3000`. See [`DEPLOY.md`](DEPLOY.md) for the full-stack and
+split (Vercel frontend + hosted API) options.
 
 ## Status
 
-| Phase | Component        | Verified                                       |
-| ----- | ---------------- | ---------------------------------------------- |
-| 1     | Foundation       | files in place                                 |
-| 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox)          |
-| 3     | Agent            | 7/7 tests pass; Hermes self-corrects           |
-| 4     | BLAST app        | 6/6 backend tests pass (in-memory + Postgres + live Stripe) |
-| 5     | Memory (Obsidian)| 19/19 tests pass; bm25/vector/hybrid + router  |
+| Phase | Component        | Verified                                               |
+| ----- | ---------------- | ------------------------------------------------------ |
+| 1     | Foundation       | files in place                                         |
+| 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox)                  |
+| 3     | Agent            | 7/7 tests pass; Hermes self-corrects + recalls         |
+| 4     | BLAST app        | 6/6 backend tests pass (in-memory + Postgres + Stripe) |
+| 5     | Memory (Obsidian)| 25/25 tests pass; bm25/vector/hybrid + Pinecone + router + ingest |
+| 6     | Deploy           | Dockerfile builds; compose + Vercel configs            |
 
-CI runs all suites on every push and pull request; a pre-commit hook runs them
-locally before each commit (`npm run setup:hooks`).
+CI runs all suites (and a Docker image build) on every push and pull request; a
+pre-commit hook runs the tests locally before each commit (`npm run setup:hooks`).

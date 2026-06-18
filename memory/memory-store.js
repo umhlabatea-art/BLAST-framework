@@ -14,7 +14,7 @@
  */
 import { loadVault } from "./vault.js";
 import { createEmbedder } from "./embeddings.js";
-import { createVectorMemory, createVectorMemoryFromNotes } from "./vector-memory.js";
+import { createVectorMemory, createVectorMemoryFromNotes, resolveVectorStore } from "./vector-memory.js";
 
 // BM25 free parameters (standard defaults).
 const K1 = 1.5; // term-frequency saturation
@@ -145,7 +145,7 @@ export function createMemoryFromNotes(notes) {
  *                                    Falls back to MEMORY_BACKEND env var.
  * @param {object}  [opts.embedder]  custom embedder for vector/hybrid backends.
  */
-export async function createObsidianMemory({ vaultPath, backend, embedder } = {}) {
+export async function createObsidianMemory({ vaultPath, backend, embedder, vectorStore } = {}) {
   if (!vaultPath) throw new Error("vaultPath is required");
   const mode = (backend || process.env.MEMORY_BACKEND || "bm25").toLowerCase();
 
@@ -166,15 +166,17 @@ export async function createObsidianMemory({ vaultPath, backend, embedder } = {}
 
   if (mode === "vector") {
     const emb = embedder || createEmbedder();
-    const memory = await createVectorMemory({ vaultPath, embedder: emb });
+    const store = await resolveVectorStore({ vectorStore });
+    const memory = await createVectorMemory({ vaultPath, embedder: emb, store });
     return { ...memory, backend: "vector" };
   }
 
   if (mode === "hybrid") {
     const emb = embedder || createEmbedder();
+    const store = await resolveVectorStore({ vectorStore });
     let notes = await loadVault(vaultPath);
     let bm25 = createMemoryFromNotes(notes);
-    let vec = await createVectorMemoryFromNotes(notes, emb);
+    let vec = await createVectorMemoryFromNotes(notes, emb, store);
     let byId = new Map(notes.map((n) => [n.id, n]));
 
     // Normalize a result list to [0,1] by its own max score.
@@ -219,7 +221,7 @@ export async function createObsidianMemory({ vaultPath, backend, embedder } = {}
       async reindex() {
         notes = await loadVault(vaultPath);
         bm25 = createMemoryFromNotes(notes);
-        vec = await createVectorMemoryFromNotes(notes, emb);
+        vec = await createVectorMemoryFromNotes(notes, emb, store);
         byId = new Map(notes.map((n) => [n.id, n]));
         return this.stats();
       },
