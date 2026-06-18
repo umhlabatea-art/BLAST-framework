@@ -1,0 +1,16 @@
+{
+  "name": "umhlawati",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Umhlawati AI development ecosystem — prompts, MCP server, agent, memory, and the BLAST app.",
+  "scripts": {
+    "setup:hooks": "bash scripts/setup-hooks.sh",
+    "test:memory": "node memory/test.js",
+    "test:agent": "node agent/test.js",
+    "memory:query": "node memory/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

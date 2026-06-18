@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# Umhlawati pre-commit hook: run the test suites before allowing a commit.
+#
+# Zero-dependency suites (memory, agent) always run. Suites that need installed
+# packages (mcp-server, src/backend) run only when their node_modules exist, so
+# a fresh clone can still commit without first running npm install.
+#
+# Enable once per clone:  npm run setup:hooks   (or: git config core.hooksPath .githooks)
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Make sure `node` is on PATH even when invoked by GUI git clients via nvm.
+if ! command -v node >/dev/null 2>&1; then
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$HOME/.nvm/nvm.sh"
+  fi
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found on PATH — skipping tests." >&2
+  exit 0
+fi
+
+run_suite() {
+  local name="$1" dir="$2" cmd="$3"
+  echo "pre-commit: running $name tests..."
+  if ! ( cd "$dir" && eval "$cmd" >/dev/null 2>&1 ); then
+    echo "pre-commit: ✗ $name tests FAILED. Commit aborted." >&2
+    echo "            re-run to see details:  (cd $dir && $cmd)" >&2
+    exit 1
+  fi
+  echo "pre-commit: ✓ $name"
+}
+
+# Always-run (no dependencies).
+run_suite "memory" "memory" "node test.js"
+run_suite "agent"  "agent"  "node test.js"
+
+# Conditional (need installed deps).
+if [ -d "mcp-server/node_modules" ]; then
+  run_suite "mcp-server" "mcp-server" "npm run --silent smoke"
+else
+  echo "pre-commit: (skipping mcp-server — run 'npm install' in mcp-server/)"
+fi
+
+if [ -d "src/backend/node_modules" ]; then
+  run_suite "backend" "src/backend" "node test.js"
+else
+  echo "pre-commit: (skipping backend — run 'npm install' in src/backend/)"
+fi
+
+echo "pre-commit: all checks passed."
