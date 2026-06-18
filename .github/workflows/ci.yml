@@ -25,6 +25,10 @@ jobs:
         working-directory: agent
         run: node test.js
 
+      - name: Routines tests
+        working-directory: routines
+        run: node test.js
+
       # Suites with dependencies
       - name: MCP server (install + smoke)
         working-directory: mcp-server

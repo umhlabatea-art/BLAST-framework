@@ -41,6 +41,31 @@ function mapPayment(row) {
   };
 }
 
+function mapLead(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    name: row.name,
+    email: row.email,
+    company: row.company,
+    source: row.source,
+    status: row.status,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  };
+}
+
+function mapNote(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    body: row.body,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  };
+}
+
 function isUniqueViolation(err) {
   return err && (err.code === "23505" || /unique|duplicate/i.test(err.message || ""));
 }
@@ -142,6 +167,78 @@ export function createPostgresStore({ pool }) {
         [sessionId, status]
       );
       return mapPayment(rows[0]);
+    },
+
+    // --- CRM: leads ---
+    async createLead({ ownerId, name, email, company, source, status }) {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const { rows } = await pool.query(
+        `INSERT INTO leads (id, owner_id, name, email, company, source, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, owner_id, name, email, company, source, status, created_at`,
+        [id, ownerId, name, email, company, source, status, now]
+      );
+      return mapLead(rows[0]);
+    },
+
+    async listLeads(ownerId, { status } = {}) {
+      const { rows } = status
+        ? await pool.query(
+            `SELECT id, owner_id, name, email, company, source, status, created_at
+               FROM leads WHERE owner_id = $1 AND status = $2 ORDER BY created_at ASC`,
+            [ownerId, status]
+          )
+        : await pool.query(
+            `SELECT id, owner_id, name, email, company, source, status, created_at
+               FROM leads WHERE owner_id = $1 ORDER BY created_at ASC`,
+            [ownerId]
+          );
+      return rows.map(mapLead);
+    },
+
+    async findLeadById(id) {
+      const { rows } = await pool.query(
+        `SELECT id, owner_id, name, email, company, source, status, created_at
+           FROM leads WHERE id = $1`,
+        [id]
+      );
+      return mapLead(rows[0]);
+    },
+
+    async updateLead(id, patch) {
+      // Only a known, safe set of columns may be updated.
+      const allowed = ["name", "email", "company", "source", "status"];
+      const cols = Object.keys(patch).filter((k) => allowed.includes(k));
+      if (cols.length === 0) return this.findLeadById(id);
+      const sets = cols.map((c, i) => `${c} = $${i + 2}`).join(", ");
+      const values = cols.map((c) => patch[c]);
+      const { rows } = await pool.query(
+        `UPDATE leads SET ${sets} WHERE id = $1
+         RETURNING id, owner_id, name, email, company, source, status, created_at`,
+        [id, ...values]
+      );
+      return mapLead(rows[0]);
+    },
+
+    async addLeadNote(leadId, body) {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const { rows } = await pool.query(
+        `INSERT INTO lead_notes (id, lead_id, body, created_at)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, body, created_at`,
+        [id, leadId, body, now]
+      );
+      return mapNote(rows[0]);
+    },
+
+    async listLeadNotes(leadId) {
+      const { rows } = await pool.query(
+        `SELECT id, body, created_at FROM lead_notes WHERE lead_id = $1 ORDER BY created_at ASC`,
+        [leadId]
+      );
+      return rows.map(mapNote);
     },
   };
 }

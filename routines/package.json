@@ -1,0 +1,16 @@
+{
+  "name": "@umhlawati/routines",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cron-scheduled Hermes routines (24/7 agents) that log outcomes to the vault.",
+  "scripts": {
+    "test": "node test.js",
+    "list": "node cli.js list",
+    "run-due": "node cli.js run-due",
+    "start": "node cli.js start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

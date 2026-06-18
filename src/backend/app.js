@@ -16,6 +16,12 @@ import express from "express";
 import { hashPassword, verifyPassword, issueToken, requireAuth } from "./auth.js";
 import { createPayments } from "./payments.js";
 import { createInMemoryStore } from "./store.js";
+import {
+  normalizeLeadInput,
+  canTransition,
+  isValidStatus,
+  computeFollowUps,
+} from "./leads.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -116,6 +122,105 @@ export async function createApp({ store, payments } = {}) {
   app.get("/api/payments", requireAuth, async (req, res) => {
     const payments = await db.listPaymentsByUser(req.user.sub);
     res.json({ payments });
+  });
+
+  // --- CRM: leads (all scoped to the authenticated owner) ---
+
+  // Load a lead and enforce ownership; responds 404 if missing or not owned
+  // (avoids leaking the existence of other users' leads).
+  async function loadOwnedLead(req, res) {
+    const lead = await db.findLeadById(req.params.id);
+    if (!lead || lead.ownerId !== req.user.sub) {
+      res.status(404).json({ error: "Lead not found" });
+      return null;
+    }
+    return lead;
+  }
+
+  app.post("/api/leads", requireAuth, async (req, res) => {
+    try {
+      const fields = normalizeLeadInput(req.body || {});
+      const lead = await db.createLead({ ownerId: req.user.sub, ...fields });
+      res.status(201).json({ lead });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Bulk import / seed (e.g. from a scraping pipeline). Reports per-row errors.
+  app.post("/api/leads/bulk", requireAuth, async (req, res) => {
+    const rows = Array.isArray(req.body?.leads) ? req.body.leads : null;
+    if (!rows) return res.status(400).json({ error: "Body must be { leads: [...] }" });
+    const created = [];
+    const errors = [];
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        const fields = normalizeLeadInput(rows[i]);
+        created.push(await db.createLead({ ownerId: req.user.sub, ...fields }));
+      } catch (err) {
+        errors.push({ index: i, error: err.message });
+      }
+    }
+    res.status(201).json({ imported: created.length, created, errors });
+  });
+
+  app.get("/api/leads", requireAuth, async (req, res) => {
+    const status = req.query.status;
+    if (status && !isValidStatus(status)) {
+      return res.status(400).json({ error: `invalid status filter: ${status}` });
+    }
+    const leads = await db.listLeads(req.user.sub, { status });
+    res.json({ leads });
+  });
+
+  app.get("/api/leads/:id", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    res.json({ lead });
+  });
+
+  app.patch("/api/leads/:id", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    const patch = {};
+    try {
+      if (req.body?.status !== undefined) {
+        if (!canTransition(lead.status, req.body.status)) {
+          return res
+            .status(400)
+            .json({ error: `cannot transition from ${lead.status} to ${req.body.status}` });
+        }
+        patch.status = req.body.status;
+      }
+      for (const f of ["name", "company", "source"]) {
+        if (req.body?.[f] !== undefined) patch[f] = String(req.body[f]).trim();
+      }
+      const updated = await db.updateLead(lead.id, patch);
+      res.json({ lead: updated });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/leads/:id/notes", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    const body = (req.body?.body || "").trim();
+    if (!body) return res.status(400).json({ error: "note body is required" });
+    const note = await db.addLeadNote(lead.id, body);
+    res.status(201).json({ note });
+  });
+
+  app.get("/api/leads/:id/notes", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    res.json({ notes: await db.listLeadNotes(lead.id) });
+  });
+
+  app.get("/api/leads/:id/followups", requireAuth, async (req, res) => {
+    const lead = await loadOwnedLead(req, res);
+    if (!lead) return;
+    res.json(computeFollowUps(lead));
   });
 
   return app;

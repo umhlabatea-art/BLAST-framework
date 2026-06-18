@@ -40,6 +40,7 @@ run_suite() {
 # Always-run (no dependencies).
 run_suite "memory" "memory" "node test.js"
 run_suite "agent"  "agent"  "node test.js"
+run_suite "routines" "routines" "node test.js"
 
 # Conditional (need installed deps).
 if [ -d "mcp-server/node_modules" ]; then
