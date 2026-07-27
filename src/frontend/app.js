@@ -23,7 +23,58 @@ function showApp(user) {
   document.getElementById("auth-section").hidden = true;
   document.getElementById("app-section").hidden = false;
   document.getElementById("user-email").textContent = user.email;
+  renderProducts();
   refreshPayments();
+}
+
+const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
+
+async function renderProducts() {
+  const el = document.getElementById("products");
+  try {
+    const { products } = await api("GET", "/api/products");
+    el.innerHTML = products
+      .map(
+        (p) => `
+        <article class="product">
+          <h4>${p.name}</h4>
+          <p class="tagline">${p.tagline}</p>
+          <div class="tiers">
+            ${p.tiers
+              .map(
+                (t) =>
+                  `<button class="tier" data-product="${p.id}" data-tier="${t.tier}" title="${t.blurb}">` +
+                  `${t.name} · ${fmt(t.priceCents)}</button>`
+              )
+              .join("")}
+          </div>
+        </article>`
+      )
+      .join("");
+  } catch (err) {
+    el.innerHTML = `<p class="tagline">Could not load products: ${err.message}</p>`;
+  }
+}
+
+async function buy(productId, tier) {
+  try {
+    const session = await api("POST", "/api/checkout", { productId, tier });
+    log(`Checkout session (${session.mode}): ${session.url}`);
+    // In stub mode there is no hosted page; simulate completion via webhook so
+    // the demo is fully exercisable without Stripe.
+    if (session.mode === "stub") {
+      await api("POST", "/api/webhook", {
+        type: "checkout.session.completed",
+        data: { object: { id: session.id } },
+      });
+      log("Stub payment completed.");
+      refreshPayments();
+    } else {
+      window.location.href = session.url;
+    }
+  } catch (err) {
+    log(err.message);
+  }
 }
 
 function showAuth() {
@@ -39,7 +90,7 @@ async function refreshPayments() {
       ? payments
           .map(
             (p) =>
-              `<li><span>$${(p.amount / 100).toFixed(2)} ${p.currency.toUpperCase()}</span>` +
+              `<li><span>${p.productName || `${fmt(p.amount)} ${p.currency.toUpperCase()}`}</span>` +
               `<span class="status-${p.status}">${p.status}</span></li>`
           )
           .join("")
@@ -77,28 +128,11 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   log("logged out");
 });
 
-document.getElementById("checkout-btn").addEventListener("click", async () => {
-  try {
-    const session = await api("POST", "/api/checkout", {
-      priceCents: 2999,
-      productName: "OHS Starter Pack",
-    });
-    log(`Checkout session (${session.mode}): ${session.url}`);
-    // In stub mode there is no hosted page; simulate completion via webhook so
-    // the demo is fully exercisable without Stripe.
-    if (session.mode === "stub") {
-      await api("POST", "/api/webhook", {
-        type: "checkout.session.completed",
-        data: { object: { id: session.id } },
-      });
-      log("Stub payment completed.");
-      refreshPayments();
-    } else {
-      window.location.href = session.url;
-    }
-  } catch (err) {
-    log(err.message);
-  }
+// Buy buttons are rendered dynamically, so delegate from the grid container.
+document.getElementById("products").addEventListener("click", (e) => {
+  const btn = e.target.closest("button.tier");
+  if (!btn) return;
+  buy(btn.dataset.product, btn.dataset.tier);
 });
 
 // Restore session on load.

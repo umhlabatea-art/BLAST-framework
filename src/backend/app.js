@@ -7,7 +7,9 @@
  *   POST /api/auth/register   { email, password }        -> { token, user }
  *   POST /api/auth/login      { email, password }        -> { token, user }
  *   GET  /api/me              (auth)                      -> { user }
- *   POST /api/checkout        (auth) { priceCents }       -> { id, url, mode }
+ *   GET  /api/products                                    -> { products }
+ *   POST /api/checkout        (auth) { productId, tier }  -> { id, url, mode }
+ *                             (legacy: { priceCents, productName })
  *   POST /api/webhook         (stripe/stub event)         -> { received: true }
  *   GET  /api/payments        (auth)                      -> { payments }
  *   GET  /health                                          -> { ok: true }
@@ -16,6 +18,7 @@ import express from "express";
 import { hashPassword, verifyPassword, issueToken, requireAuth } from "./auth.js";
 import { createCheckoutSession, parseWebhookEvent, isStubMode } from "./payments.js";
 import { createInMemoryStore } from "./store.js";
+import { listProducts, resolvePrice } from "./catalog.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -68,9 +71,29 @@ export function createApp({ store = createInMemoryStore() } = {}) {
     res.json({ user: publicUser(user) });
   });
 
+  app.get("/api/products", (_req, res) => {
+    res.json({ products: listProducts() });
+  });
+
   app.post("/api/checkout", requireAuth, async (req, res) => {
-    const { priceCents, productName } = req.body || {};
+    const body = req.body || {};
     try {
+      // Preferred path: resolve the price server-side from the catalog so the
+      // client can never dictate what it pays. Fall back to a raw priceCents
+      // for the legacy single-product flow.
+      let priceCents;
+      let productName;
+      let productId = null;
+      let tier = null;
+      if (body.productId || body.tier) {
+        ({ priceCents, productName } = resolvePrice(body.productId, body.tier));
+        productId = body.productId;
+        tier = body.tier;
+      } else {
+        priceCents = body.priceCents;
+        productName = body.productName;
+      }
+
       const session = await createCheckoutSession({
         userId: req.user.sub,
         priceCents,
@@ -82,6 +105,9 @@ export function createApp({ store = createInMemoryStore() } = {}) {
         amount: priceCents,
         currency: "usd",
         status: "pending",
+        productId,
+        tier,
+        productName,
       });
       res.json(session);
     } catch (err) {

@@ -52,6 +52,17 @@ button {
 }
 button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
 button:hover { filter: brightness(1.08); }
+.products { display: grid; gap: 12px; }
+.product {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: #0e1120;
+}
+.product h4 { font-size: 15px; margin-bottom: 4px; }
+.product .tagline { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.tiers { display: flex; gap: 8px; flex-wrap: wrap; }
+.tiers .tier { flex: 1 1 auto; min-width: 120px; font-size: 13px; }
 #payments { list-style: none; }
 #payments li {
   font-size: 13px;

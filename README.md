@@ -20,8 +20,12 @@ umhlawati/
 │   └── context-digest/       SKILL.md + runnable digest.js
 ├── mcp-server/          # Phase 2 — sandboxed MCP server (stdio)
 ├── agent/               # Phase 3 — Hermes orchestrator + critic loop
+├── products/            # Prompt-toolkit product library (the sellable content)
+│   ├── recruiter-hiring-copy-system/
+│   ├── financial-advisor-content-kit/
+│   └── consultant-deliverable-toolkit/
 └── src/                 # Phase 4 — BLAST application
-    ├── backend/              Express API: JWT auth + Stripe-stub payments
+    ├── backend/              Express API: JWT auth + Stripe-stub payments + catalog
     └── frontend/             minimal vanilla-JS client
 ```
 
@@ -52,6 +56,19 @@ To go live, set environment variables (see `.env.example`):
   payments from stub to live with no code changes.
 - `DATABASE_URL` — swap the in-memory store for Postgres/Supabase.
 
+### Storefront + product catalog
+
+The BLAST app is wired as a multi-product store for the prompt toolkits in
+[`products/`](./products). `src/backend/catalog.js` is the single source of
+truth for what's for sale and — critically — what it costs: `POST /api/checkout`
+takes `{ productId, tier }` and resolves the price **server-side**, so the client
+can never name its own price. Browse the catalog at `GET /api/products`; the
+vanilla-JS frontend renders it as a product grid with a buy button per tier.
+
+The `products/` directory is the sellable content (prompt packs + workflow docs +
+Notion trackers + compliance disclaimers) — see [`products/README.md`](./products/README.md)
+for the pricing architecture, platform strategy, and go-live playbook.
+
 ## Status
 
 | Phase | Component        | Verified                              |
@@ -59,4 +76,5 @@ To go live, set environment variables (see `.env.example`):
 | 1     | Foundation       | files in place                        |
 | 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox) |
 | 3     | Agent            | 5/5 tests pass; Hermes self-corrects  |
-| 4     | BLAST app        | 11/11 backend tests pass; serves live |
+| 4     | BLAST app        | backend tests pass; serves live       |
+| 4     | Storefront       | product catalog + tiered checkout      |
