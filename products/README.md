@@ -10,7 +10,7 @@ This directory is the sellable content. The storefront in [`/src`](../src)
 serves this catalog for checkout (see the [go-live playbook](#go-live-playbook)
 for how the digital content is actually delivered in production).
 
-## The three launch niches
+## The three launch niches (Stages 1–2)
 
 | Toolkit | Buyer | Core price | Compliance moat |
 | --- | --- | --- | --- |
@@ -24,6 +24,30 @@ expense-budget buyers, meaningfully less saturated than real-estate and generic
 marketing packs, and each carries a regulatory overlay that scares off amateur
 sellers — which is exactly why a professionally disclaimered kit commands a
 premium.
+
+## The expansion niches (Stage 3 — the rest of the blueprint's 10)
+
+| Toolkit | Buyer | Core price | Positioning / compliance moat |
+| --- | --- | --- | --- |
+| [B2B SaaS Copywriter Kit](./copywriter-b2b-saas-kit/) | Conversion copywriters | **$37** | Sub-niched to escape saturation; FTC substantiation layer |
+| [Real Estate Listing & Client Copy Kit](./real-estate-listing-copy-kit/) | Residential agents | **$37** | Fair-Housing-Act-safe language defaults |
+| [Bookkeeper & Accountant Client-Comms Kit](./bookkeeper-client-comms-kit/) | Bookkeepers / CPAs | **$37** | "Not tax advice" + engagement-letter discipline |
+| [SaaS Customer Success Kit](./saas-customer-success-kit/) | CSMs / onboarding | **$69** | No-overpromise (SLA/roadmap) + data guardrails |
+| [Grant Writer Proposal Kit](./grant-writer-proposal-kit/) | Grant writers / nonprofits | **$47** | No-fabricated-data accuracy-to-funders layer |
+| [Solo Attorney Admin & Drafting Kit](./attorney-admin-drafting-kit/) | Solo attorneys / paralegals | **$89** | SEVERE — UPL + attorney-review-required + no AI citations |
+| [Physician Practice-Admin Kit](./physician-admin-kit/) | Physicians / practice admins | **$79** | SEVERE — HIPAA + strictly non-clinical (admin only) |
+
+Two positioning notes carried over from the research: **copywriting and generic
+real estate are saturated**, so both kits are deliberately sub-niched (B2B SaaS
+lifecycle copy; fair-housing-differentiated listings) rather than competing as
+mega-packs. And the **legal and medical** kits carry the heaviest liability
+overlays — they are scoped strictly to non-advice / non-clinical work with a
+mandatory human-review gate.
+
+> The SaaS Customer Success, Solo Attorney, and Physician kits are **not** in the
+> blueprint's explicit pricing table; their tiers are extrapolated from the
+> blueprint's positioning (premium / expense-budget buyers with heavy compliance
+> tolerance). Re-verify against live market comps before launch.
 
 ## Pricing architecture
 
