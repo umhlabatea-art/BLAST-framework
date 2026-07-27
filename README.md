@@ -80,3 +80,4 @@ for the pricing architecture, platform strategy, and go-live playbook.
 | 3     | Agent            | 5/5 tests pass; Hermes self-corrects  |
 | 4     | BLAST app        | backend tests pass; serves live       |
 | 4     | Storefront       | product catalog + tiered checkout      |
+| CI    | GitHub Actions   | all 3 suites on Node 18 & 20 per push  |
