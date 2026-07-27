@@ -93,16 +93,39 @@ try {
     ok("login rejects wrong password");
   }
 
-  // checkout (stub) + webhook -> paid
+  // product catalog is public and well-formed
   {
-    const checkout = await api("POST", "/api/checkout", { token, body: { priceCents: 2999, productName: "OHS Starter Pack" } });
+    const r = await api("GET", "/api/products");
+    assert.equal(r.status, 200);
+    assert.equal(r.json.products.length, 10, "ten products in catalog");
+    for (const p of r.json.products) {
+      assert.ok(p.id && p.name, "product has id and name");
+      assert.equal(p.tiers.length, 3, "each product has three tiers");
+      for (const t of p.tiers) {
+        assert.ok(Number.isInteger(t.priceCents) && t.priceCents > 0, "tier has a valid price");
+      }
+    }
+    ok("products endpoint returns catalog (10 products x 3 tiers)");
+  }
+
+  // checkout by product/tier resolves the catalog price server-side
+  {
+    const checkout = await api("POST", "/api/checkout", {
+      token,
+      body: { productId: "recruiter-hiring-copy-system", tier: "core" },
+    });
     assert.equal(checkout.status, 200);
     assert.equal(checkout.json.mode, "stub");
     assert.match(checkout.json.id, /^cs_stub_/);
-    ok("checkout creates a stub session");
+    ok("checkout by product/tier creates a stub session");
 
     const before = await api("GET", "/api/payments", { token });
-    assert.equal(before.json.payments[0].status, "pending");
+    const payment = before.json.payments[0];
+    assert.equal(payment.status, "pending");
+    assert.equal(payment.amount, 4900, "price comes from the catalog, not the client");
+    assert.equal(payment.productId, "recruiter-hiring-copy-system");
+    assert.equal(payment.tier, "core");
+    ok("payment records catalog price and product metadata");
 
     const webhook = await api("POST", "/api/webhook", {
       raw: JSON.stringify({
@@ -117,6 +140,29 @@ try {
     const after = await api("GET", "/api/payments", { token });
     assert.equal(after.json.payments[0].status, "paid");
     ok("payment marked paid after webhook");
+  }
+
+  // checkout rejects an unknown product/tier
+  {
+    const badProduct = await api("POST", "/api/checkout", {
+      token,
+      body: { productId: "does-not-exist", tier: "core" },
+    });
+    assert.equal(badProduct.status, 400);
+    const badTier = await api("POST", "/api/checkout", {
+      token,
+      body: { productId: "recruiter-hiring-copy-system", tier: "platinum" },
+    });
+    assert.equal(badTier.status, 400);
+    ok("checkout rejects unknown product or tier");
+  }
+
+  // legacy priceCents path still works
+  {
+    const r = await api("POST", "/api/checkout", { token, body: { priceCents: 2999, productName: "Legacy Product" } });
+    assert.equal(r.status, 200);
+    assert.equal(r.json.mode, "stub");
+    ok("legacy priceCents checkout still works");
   }
 
   // invalid checkout amount

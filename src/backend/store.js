@@ -8,7 +8,7 @@
  *   createUser({ email, passwordHash }) -> user
  *   findUserByEmail(email)              -> user | null
  *   findUserById(id)                    -> user | null
- *   recordPayment({ userId, ... })      -> payment
+ *   recordPayment({ userId, productId, tier, ... }) -> payment
  *   listPaymentsByUser(userId)          -> payment[]
  */
 import crypto from "node:crypto";
@@ -43,7 +43,7 @@ export function createInMemoryStore() {
       return usersById.get(id) || null;
     },
 
-    async recordPayment({ userId, sessionId, amount, currency, status }) {
+    async recordPayment({ userId, sessionId, amount, currency, status, productId = null, tier = null, productName = null }) {
       const payment = {
         id: crypto.randomUUID(),
         userId,
@@ -51,6 +51,9 @@ export function createInMemoryStore() {
         amount,
         currency,
         status,
+        productId,
+        tier,
+        productName,
         createdAt: new Date().toISOString(),
       };
       payments.set(payment.id, payment);
