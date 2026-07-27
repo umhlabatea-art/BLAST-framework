@@ -46,6 +46,83 @@ const CATALOG = [
       premium: { name: "Premium", priceCents: 12900, blurb: "Core + walkthrough + bonuses + updates." },
     },
   },
+  {
+    id: "copywriter-b2b-saas-kit",
+    name: "B2B SaaS Copywriter Kit",
+    tagline: "Escape the price war — own the highest-value copy sub-niche.",
+    slug: "copywriter-b2b-saas-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 1500, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 3700, blurb: "Prompts + Notion calendar + workflow doc." },
+      premium: { name: "Premium", priceCents: 6700, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "real-estate-listing-copy-kit",
+    name: "Real Estate Listing & Client Copy Kit",
+    tagline: "Fair-housing-safe listings in minutes, not an hour.",
+    slug: "real-estate-listing-copy-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 1700, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 3700, blurb: "Prompts + Notion tracker + workflow doc." },
+      premium: { name: "Premium", priceCents: 6700, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "bookkeeper-client-comms-kit",
+    name: "Bookkeeper & Accountant Client-Comms Kit",
+    tagline: "Systematize the client emails you send every month.",
+    slug: "bookkeeper-client-comms-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 1500, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 3700, blurb: "Prompts + Notion tracker + workflow doc." },
+      premium: { name: "Premium", priceCents: 6700, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "saas-customer-success-kit",
+    name: "SaaS Customer Success Kit",
+    tagline: "Cut time-to-value and save at-risk accounts.",
+    slug: "saas-customer-success-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 2700, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 6900, blurb: "Prompts + Notion tracker + workflow doc." },
+      premium: { name: "Premium", priceCents: 12900, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "grant-writer-proposal-kit",
+    name: "Grant Writer Proposal Kit",
+    tagline: "Draft the whole proposal faster — LOI to impact report.",
+    slug: "grant-writer-proposal-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 1900, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 4700, blurb: "Prompts + Notion grants calendar + workflow doc." },
+      premium: { name: "Premium", priceCents: 9700, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "attorney-admin-drafting-kit",
+    name: "Solo Attorney Admin & Drafting Kit",
+    tagline: "Reclaim billable hours from client-comms and first-draft overhead.",
+    slug: "attorney-admin-drafting-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 2900, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 8900, blurb: "Prompts + Notion matter tracker + workflow doc." },
+      premium: { name: "Premium", priceCents: 15900, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
+  {
+    id: "physician-admin-kit",
+    name: "Physician Practice-Admin Kit",
+    tagline: "Non-clinical admin, done faster — never clinical decisions.",
+    slug: "physician-admin-kit",
+    tiers: {
+      entry: { name: "Entry", priceCents: 2900, blurb: "Core prompts, single PDF." },
+      core: { name: "Core", priceCents: 7900, blurb: "Prompts + Notion practice-ops tracker + workflow doc." },
+      premium: { name: "Premium", priceCents: 14900, blurb: "Core + walkthrough + bonuses + updates." },
+    },
+  },
 ];
 
 const byId = new Map(CATALOG.map((p) => [p.id, p]));

@@ -97,7 +97,7 @@ try {
   {
     const r = await api("GET", "/api/products");
     assert.equal(r.status, 200);
-    assert.equal(r.json.products.length, 3, "three products in catalog");
+    assert.equal(r.json.products.length, 10, "ten products in catalog");
     for (const p of r.json.products) {
       assert.ok(p.id && p.name, "product has id and name");
       assert.equal(p.tiers.length, 3, "each product has three tiers");
@@ -105,7 +105,7 @@ try {
         assert.ok(Number.isInteger(t.priceCents) && t.priceCents > 0, "tier has a valid price");
       }
     }
-    ok("products endpoint returns catalog (3 products x 3 tiers)");
+    ok("products endpoint returns catalog (10 products x 3 tiers)");
   }
 
   // checkout by product/tier resolves the catalog price server-side

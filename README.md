@@ -20,10 +20,12 @@ umhlawati/
 │   └── context-digest/       SKILL.md + runnable digest.js
 ├── mcp-server/          # Phase 2 — sandboxed MCP server (stdio)
 ├── agent/               # Phase 3 — Hermes orchestrator + critic loop
-├── products/            # Prompt-toolkit product library (the sellable content)
-│   ├── recruiter-hiring-copy-system/
-│   ├── financial-advisor-content-kit/
-│   └── consultant-deliverable-toolkit/
+├── products/            # Prompt-toolkit product library (10 niches, sellable content)
+│   ├── recruiter-hiring-copy-system/      financial-advisor-content-kit/
+│   ├── consultant-deliverable-toolkit/    copywriter-b2b-saas-kit/
+│   ├── real-estate-listing-copy-kit/      bookkeeper-client-comms-kit/
+│   ├── saas-customer-success-kit/         grant-writer-proposal-kit/
+│   └── attorney-admin-drafting-kit/       physician-admin-kit/
 └── src/                 # Phase 4 — BLAST application
     ├── backend/              Express API: JWT auth + Stripe-stub payments + catalog
     └── frontend/             minimal vanilla-JS client
