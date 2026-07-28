@@ -57,7 +57,7 @@ export default function Compliance() {
 
   return (
     <Screen>
-      <Display className="mb-1 mt-2 text-4xl text-earth-dark">Rights Hub</Display>
+      <Display className="mb-1 mt-2 text-2xl text-ink">Rights Hub</Display>
       <Body className="mb-4">
         The legal agent prepares and tracks your registrations. These bodies have no public API, so
         we ready your submission and keep its status here.
@@ -82,14 +82,14 @@ export default function Compliance() {
           <Card key={reg.id} className="mb-3">
             <View className="flex-row items-center justify-between">
               <Heading className="text-lg">{reg.bodyName}</Heading>
-              <Badge label={reg.state} tone={reg.state === "registered" ? "sage" : "muted"} />
+              <Badge label={reg.state} tone={reg.state === "registered" ? "success" : "neutral"} />
             </View>
             <Body className="mt-1 text-sm">{reg.trackTitle}</Body>
             <StateTrack state={reg.state} />
             {reg.payload ? (
               <View className="mt-3 rounded-xl bg-background p-3">
                 <Body className="text-xs uppercase tracking-wide">Prepared payload</Body>
-                <Body className="mt-1 font-body text-xs text-earth-dark">
+                <Body className="mt-1 font-body text-xs text-ink">
                   {JSON.stringify(reg.payload)}
                 </Body>
               </View>

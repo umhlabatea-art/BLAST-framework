@@ -1,6 +1,7 @@
 // Tailwind theme for the app, sourced from the shared brand tokens so the
-// native UI and any web export share one palette.
-const { palette, semantic } = require("@umhlabatea/core/theme");
+// native UI and any web export share one palette. Minimalist system: paper
+// background, ink text, hairline lines, a single accent, IBM Plex Mono.
+const { palette, semantic } = require("@umhlabatea/core/theme/palette.cjs");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -12,14 +13,16 @@ module.exports = {
         ...palette,
         background: semantic.background,
         surface: semantic.surface,
+        ink: palette.ink,
+        muted: semantic.muted,
         primary: semantic.primary,
         accent: semantic.accent,
-        canvas: semantic.canvasDark,
-        muted: semantic.muted,
+        line: semantic.border,
       },
       fontFamily: {
-        display: ["BebasNeue"],
-        body: ["Ubuntu"],
+        display: ["IBMPlexMono_600SemiBold"],
+        body: ["IBMPlexMono_400Regular"],
+        medium: ["IBMPlexMono_500Medium"],
       },
     },
   },

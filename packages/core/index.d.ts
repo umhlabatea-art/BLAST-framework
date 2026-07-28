@@ -73,10 +73,12 @@ export interface LiveSale {
 }
 
 export interface Tier {
-  id: "free" | "pro" | "premium";
+  id: "free" | "pro" | "studio";
   name: string;
   priceRands: number;
+  annualRands?: number;
   period: string;
+  tagline?: string;
   highlighted?: boolean;
   agents: string[];
   features: string[];

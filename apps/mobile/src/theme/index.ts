@@ -22,13 +22,13 @@ export function compact(n: number): string {
   return String(n);
 }
 
-/** Deterministic gradient pair for a cover placeholder, seeded by an id. */
+/** Deterministic, muted two-tone for a cover placeholder, seeded by an id. */
 export function coverGradient(seed: string): [string, string] {
   const pairs: [string, string][] = [
-    [palette.terracotta, palette["deep-teal"]],
-    [palette.ochre, palette.sage],
-    [palette["burnt-orange"], palette.gold],
-    [palette["pattern-purple"], palette["earth-brown"]],
+    [palette["deep-teal"], palette.sage],
+    [palette.terracotta, palette.ochre],
+    [palette.accent, palette.gold],
+    [palette.sage, palette["deep-teal"]],
     [palette.gold, palette.terracotta],
   ];
   let h = 0;

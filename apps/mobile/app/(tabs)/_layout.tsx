@@ -13,16 +13,16 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: palette["burnt-orange"],
-          tabBarInactiveTintColor: palette["earth-brown"],
+          tabBarActiveTintColor: palette.ink,
+          tabBarInactiveTintColor: palette["ink-soft"],
           tabBarStyle: {
-            backgroundColor: palette.cream,
-            borderTopColor: palette.ochre,
+            backgroundColor: palette.surface,
+            borderTopColor: palette.line,
             height: 62,
             paddingBottom: 8,
             paddingTop: 6,
           },
-          tabBarLabelStyle: { fontFamily: "Ubuntu", fontSize: 11 },
+          tabBarLabelStyle: { fontFamily: "IBMPlexMono_400Regular", fontSize: 10 },
         }}
       >
         <Tabs.Screen name="index" options={{ title: "Discover", tabBarIcon: ({ color }) => <TabIcon icon="🎧" color={color} /> }} />

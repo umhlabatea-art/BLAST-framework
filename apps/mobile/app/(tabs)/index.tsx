@@ -24,10 +24,10 @@ export default function Discover() {
   return (
     <Screen>
       <View className="mb-2 mt-2 flex-row items-center justify-between">
-        <Display className="text-4xl text-earth-dark">
-          umhlaba<Display className="text-4xl text-burnt-orange">tea</Display>
+        <Display className="text-2xl text-ink">
+          umhlaba<Display className="text-2xl text-accent">tea</Display>
         </Display>
-        <Link href="/subscriptions" className="font-body font-bold text-deep-teal">
+        <Link href="/subscriptions" className="font-body font-bold text-ink">
           Go Pro →
         </Link>
       </View>
@@ -38,7 +38,7 @@ export default function Discover() {
         onChangeText={setQ}
         placeholder="Search artists, tracks, genres…"
         placeholderTextColor="#8a7a68"
-        className="mb-4 rounded-full border border-ochre bg-surface px-5 py-3 font-body text-earth-dark"
+        className="mb-4 rounded-full border border-line bg-surface px-5 py-3 font-body text-ink"
       />
 
       <LiveSalesTicker items={liveSales} />

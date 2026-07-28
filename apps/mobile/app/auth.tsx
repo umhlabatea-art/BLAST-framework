@@ -23,20 +23,20 @@ export default function Auth() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-earth-dark px-6">
+    <SafeAreaView className="flex-1 bg-ink px-6">
       <Pressable onPress={() => router.back()} className="py-4">
-        <Text className="font-body text-cream">⌄ Close</Text>
+        <Text className="font-body text-white">⌄ Close</Text>
       </Pressable>
 
       <View className="mt-8">
-        <Display className="text-5xl text-cream">
-          umhlaba<Display className="text-5xl text-burnt-orange">tea</Display>
+        <Display className="text-2xl text-white">
+          umhlaba<Display className="text-2xl text-accent">tea</Display>
         </Display>
-        <Body className="mt-2 text-ochre">Where artists own their future.</Body>
+        <Body className="mt-2 text-muted">Where artists own their future.</Body>
       </View>
 
       <View className="mt-10">
-        <Body className="mb-1 text-cream">Email</Body>
+        <Body className="mb-1 text-white">Email</Body>
         <TextInput
           value={email}
           onChangeText={setEmail}
@@ -44,16 +44,16 @@ export default function Auth() {
           keyboardType="email-address"
           placeholder="you@example.com"
           placeholderTextColor="#8a7a68"
-          className="mb-4 rounded-xl border border-earth-brown bg-earth-brown/30 px-4 py-3 font-body text-cream"
+          className="mb-4 rounded-xl border border-line bg-white/5 px-4 py-3 font-body text-white"
         />
-        <Body className="mb-1 text-cream">Password</Body>
+        <Body className="mb-1 text-white">Password</Body>
         <TextInput
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           placeholder="At least 8 characters"
           placeholderTextColor="#8a7a68"
-          className="mb-2 rounded-xl border border-earth-brown bg-earth-brown/30 px-4 py-3 font-body text-cream"
+          className="mb-2 rounded-xl border border-line bg-white/5 px-4 py-3 font-body text-white"
         />
         {error ? <Body className="mb-2 text-vibrant-red">{error}</Body> : null}
 
@@ -62,7 +62,7 @@ export default function Auth() {
         </View>
 
         <Pressable className="mt-4" onPress={() => setMode(mode === "register" ? "login" : "register")}>
-          <Body className="text-center text-ochre">
+          <Body className="text-center text-muted">
             {mode === "register" ? "Already have an account? Log in" : "New here? Create an account"}
           </Body>
         </Pressable>

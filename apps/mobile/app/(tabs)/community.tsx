@@ -31,7 +31,7 @@ export default function Community() {
 
   return (
     <Screen>
-      <Display className="mb-1 mt-2 text-4xl text-earth-dark">Community</Display>
+      <Display className="mb-1 mt-2 text-2xl text-ink">Community</Display>
       <Body className="mb-4">
         All walks of life, one language. Share collabs, events, and what you’re making.
       </Body>
@@ -43,7 +43,7 @@ export default function Community() {
           placeholder="Share something with the community…"
           placeholderTextColor="#8a7a68"
           multiline
-          className="min-h-[60px] rounded-xl border border-ochre bg-background px-4 py-3 font-body text-earth-dark"
+          className="min-h-[60px] rounded-xl border border-line bg-background px-4 py-3 font-body text-ink"
         />
         <View className="mt-3">
           <Button label={user ? "Post" : "Sign in to post"} onPress={submit} loading={busy} disabled={!draft.trim()} />
@@ -57,9 +57,9 @@ export default function Community() {
             <View className="flex-1">
               <Heading className="text-lg">{post.authorName}</Heading>
             </View>
-            <Badge label={post.tag} tone="sage" />
+            <Badge label={post.tag} tone="success" />
           </View>
-          <Body className="mt-3 text-earth-dark">{post.body}</Body>
+          <Body className="mt-3 text-ink">{post.body}</Body>
           <View className="mt-3 flex-row gap-4">
             <Body className="text-sm">❤️ {post.likes}</Body>
             <Body className="text-sm">💬 {post.comments}</Body>

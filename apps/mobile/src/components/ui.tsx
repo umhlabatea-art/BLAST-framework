@@ -1,42 +1,51 @@
 /**
- * Core design-system primitives, all NativeWind-styled from the shared theme.
- * Kept in one module so screens import a small, consistent vocabulary.
+ * Design-system primitives — a restrained, minimalist set built on IBM Plex
+ * Mono. Paper surfaces, hairline borders, one accent. Screens compose from this
+ * small vocabulary so the whole app reads as one calm system.
  */
 import { Text, View, Pressable, ActivityIndicator, ViewProps, TextProps } from "react-native";
 import { coverGradient } from "../theme";
 
 // --- Typography ------------------------------------------------------------
 
+/** Screen / section titles. */
 export function Display({ className = "", ...p }: TextProps & { className?: string }) {
-  return <Text className={`font-display text-earth-dark ${className}`} {...p} />;
+  return <Text className={`font-display text-ink ${className}`} {...p} />;
 }
+/** Sub-heads and card titles. */
 export function Heading({ className = "", ...p }: TextProps & { className?: string }) {
-  return <Text className={`font-display text-earth-dark text-2xl ${className}`} {...p} />;
+  return <Text className={`font-medium text-ink text-base ${className}`} {...p} />;
 }
+/** Body / secondary copy. */
 export function Body({ className = "", ...p }: TextProps & { className?: string }) {
-  return <Text className={`font-body text-earth-brown ${className}`} {...p} />;
+  return <Text className={`font-body text-muted text-[13px] leading-5 ${className}`} {...p} />;
+}
+/** Small uppercase label for section eyebrows. */
+export function Label({ className = "", ...p }: TextProps & { className?: string }) {
+  return <Text className={`font-body text-[11px] uppercase tracking-[2px] text-muted ${className}`} {...p} />;
 }
 
 // --- Surfaces --------------------------------------------------------------
 
 export function Card({ className = "", children, ...p }: ViewProps & { className?: string }) {
   return (
-    <View className={`bg-surface rounded-2xl p-4 shadow-lg shadow-black/10 ${className}`} {...p}>
+    <View className={`rounded-2xl border border-line bg-surface p-4 ${className}`} {...p}>
       {children}
     </View>
   );
 }
 
-export function Badge({ label, tone = "primary" }: { label: string; tone?: "primary" | "accent" | "sage" | "muted" }) {
+export function Badge({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "accent" | "success" }) {
   const tones: Record<string, string> = {
-    primary: "bg-burnt-orange",
-    accent: "bg-gold",
-    sage: "bg-sage",
-    muted: "bg-ochre",
+    neutral: "bg-black/[0.04] border-line text-muted",
+    accent: "bg-accent-soft border-transparent text-accent",
+    success: "bg-sage/15 border-transparent text-sage",
   };
   return (
-    <View className={`self-start rounded-full px-3 py-1 ${tones[tone]}`}>
-      <Text className="font-body text-xs font-bold uppercase tracking-wide text-white">{label}</Text>
+    <View className={`self-start rounded-md border px-2 py-0.5 ${tones[tone]}`}>
+      <Text className={`font-body text-[11px] ${tone === "neutral" ? "text-muted" : tone === "accent" ? "text-accent" : "text-sage"}`}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -53,28 +62,27 @@ export function Button({
 }: {
   label: string;
   onPress?: () => void;
-  variant?: "primary" | "outline" | "dark";
+  variant?: "primary" | "accent" | "outline";
   loading?: boolean;
   disabled?: boolean;
   className?: string;
 }) {
-  const base = "rounded-xl py-3 px-5 items-center justify-center";
   const styles: Record<string, string> = {
-    primary: "bg-burnt-orange active:bg-vibrant-red",
-    dark: "bg-earth-dark active:bg-earth-brown",
-    outline: "border-2 border-burnt-orange bg-transparent",
+    primary: "bg-ink active:opacity-80",
+    accent: "bg-accent active:opacity-80",
+    outline: "border border-line bg-surface active:bg-black/[0.03]",
   };
-  const textColor = variant === "outline" ? "text-burnt-orange" : "text-white";
+  const textColor = variant === "outline" ? "text-ink" : "text-white";
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
-      className={`${base} ${styles[variant]} ${disabled || loading ? "opacity-60" : ""} ${className}`}
+      className={`items-center justify-center rounded-xl px-5 py-3 ${styles[variant]} ${disabled || loading ? "opacity-50" : ""} ${className}`}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "outline" ? "#FF6B35" : "#fff"} />
+        <ActivityIndicator color={variant === "outline" ? "#1C1917" : "#fff"} />
       ) : (
-        <Text className={`font-body font-bold uppercase tracking-wide ${textColor}`}>{label}</Text>
+        <Text className={`font-medium text-[13px] ${textColor}`}>{label}</Text>
       )}
     </Pressable>
   );
@@ -84,28 +92,22 @@ export function Button({
 
 export function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
-    <View className="mb-3 mt-6 flex-row items-center justify-between">
-      <View>
-        <Heading className="text-3xl">{title}</Heading>
-        <View className="mt-1 h-1 w-16 rounded-full bg-burnt-orange" />
-      </View>
+    <View className="mb-3 mt-7 flex-row items-center justify-between">
+      <Display className="text-lg">{title}</Display>
       {action}
     </View>
   );
 }
 
-// --- Cover art placeholder (deterministic gradient) ------------------------
+// --- Cover art placeholder (soft two-tone) --------------------------------
 
-export function CoverArt({ seed, size = 56, rounded = "rounded-xl", label }: { seed: string; size?: number; rounded?: string; label?: string }) {
+export function CoverArt({ seed, size = 52, rounded = "rounded-xl", label }: { seed: string; size?: number; rounded?: string; label?: string }) {
   const [from, to] = coverGradient(seed);
   return (
-    <View
-      className={`${rounded} items-center justify-center overflow-hidden`}
-      style={{ width: size, height: size, backgroundColor: from }}
-    >
-      <View className="absolute inset-0 opacity-60" style={{ backgroundColor: to }} />
+    <View className={`${rounded} items-center justify-center overflow-hidden border border-line`} style={{ width: size, height: size, backgroundColor: from }}>
+      <View className="absolute inset-0 opacity-40" style={{ backgroundColor: to }} />
       {label ? (
-        <Text className="font-display text-cream" style={{ fontSize: size / 3 }}>
+        <Text className="font-display text-white/90" style={{ fontSize: size / 3.4 }}>
           {label.slice(0, 2).toUpperCase()}
         </Text>
       ) : null}

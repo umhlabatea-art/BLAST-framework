@@ -11,8 +11,8 @@ export default function Player() {
 
   if (!current) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-earth-dark">
-        <Body className="text-cream">Nothing playing.</Body>
+      <SafeAreaView className="flex-1 items-center justify-center bg-ink">
+        <Body className="text-white">Nothing playing.</Body>
       </SafeAreaView>
     );
   }
@@ -20,9 +20,9 @@ export default function Player() {
   const progress = durationMs ? Math.min(1, positionMs / durationMs) : 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-earth-dark px-6">
+    <SafeAreaView className="flex-1 bg-ink px-6">
       <Pressable onPress={() => router.back()} className="py-4">
-        <Text className="font-body text-cream">⌄ Close</Text>
+        <Text className="font-body text-white">⌄ Close</Text>
       </Pressable>
 
       <View className="mt-6 items-center">
@@ -30,8 +30,8 @@ export default function Player() {
       </View>
 
       <View className="mt-8">
-        <Display className="text-4xl text-cream">{current.title}</Display>
-        <Body className="text-ochre">{current.artistName} · {current.genre}</Body>
+        <Display className="text-2xl text-white">{current.title}</Display>
+        <Body className="text-muted">{current.artistName} · {current.genre}</Body>
       </View>
 
       {/* Seek bar */}
@@ -44,29 +44,29 @@ export default function Player() {
           seek(Math.max(0, Math.min(1, x / width)) * durationMs);
         }}
       >
-        <View className="h-1.5 w-full rounded-full bg-earth-brown">
-          <View className="h-1.5 rounded-full bg-gold" style={{ width: `${progress * 100}%` }} />
+        <View className="h-1.5 w-full rounded-full bg-white/10">
+          <View className="h-1.5 rounded-full bg-accent" style={{ width: `${progress * 100}%` }} />
         </View>
       </Pressable>
       <View className="mt-2 flex-row justify-between">
-        <Body className="text-xs text-ochre">{duration(positionMs / 1000)}</Body>
-        <Body className="text-xs text-ochre">{duration(durationMs / 1000)}</Body>
+        <Body className="text-xs text-muted">{duration(positionMs / 1000)}</Body>
+        <Body className="text-xs text-muted">{duration(durationMs / 1000)}</Body>
       </View>
 
       <View className="mt-10 flex-row items-center justify-center">
         <Pressable
           onPress={toggle}
-          className="h-20 w-20 items-center justify-center rounded-full bg-gold active:bg-burnt-orange"
+          className="h-20 w-20 items-center justify-center rounded-full bg-accent active:opacity-80"
         >
-          <Text className="text-3xl text-earth-dark">{isPlaying ? "❚❚" : "▶"}</Text>
+          <Text className="text-xl text-ink">{isPlaying ? "❚❚" : "▶"}</Text>
         </Pressable>
       </View>
 
       {current.progression ? (
-        <View className="mt-10 rounded-2xl bg-earth-brown/40 p-4">
-          <Body className="text-xs uppercase tracking-wide text-ochre">Chord progression</Body>
-          <Heading className="mt-1 text-gold">{current.progression}</Heading>
-          <Body className="mt-1 text-cream">{current.bpm} BPM · Key of {current.key}</Body>
+        <View className="mt-10 rounded-2xl bg-white/5 p-4">
+          <Body className="text-xs uppercase tracking-wide text-muted">Chord progression</Body>
+          <Heading className="mt-1 text-accent">{current.progression}</Heading>
+          <Body className="mt-1 text-white">{current.bpm} BPM · Key of {current.key}</Body>
         </View>
       ) : null}
     </SafeAreaView>

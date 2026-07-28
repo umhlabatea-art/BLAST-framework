@@ -15,7 +15,7 @@ export type { Track, Artist, CommunityPost, Tier, AffiliateProgram, SeoResult, R
 export interface AuthUser {
   id: string;
   email: string;
-  tier: "free" | "pro" | "premium";
+  tier: "free" | "pro" | "studio";
 }
 
 export interface GenerateParams {

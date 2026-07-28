@@ -9,11 +9,11 @@ import { Display, Heading, Body, Card, Button } from "../../src/components/ui";
 import { TrackRow } from "../../src/components/music";
 import { rands } from "../../src/theme";
 
-function EarningTile({ label, value, tone = "text-burnt-orange" }: { label: string; value: string; tone?: string }) {
+function EarningTile({ label, value, tone = "text-accent" }: { label: string; value: string; tone?: string }) {
   return (
     <View className="flex-1 rounded-2xl bg-surface p-4">
       <Body className="text-xs uppercase tracking-wide">{label}</Body>
-      <Display className={`mt-1 text-3xl ${tone}`}>{value}</Display>
+      <Display className={`mt-1 text-xl ${tone}`}>{value}</Display>
     </View>
   );
 }
@@ -30,7 +30,7 @@ export default function Library() {
 
   return (
     <Screen>
-      <Display className="mb-1 mt-2 text-4xl text-earth-dark">Your Library</Display>
+      <Display className="mb-1 mt-2 text-2xl text-ink">Your Library</Display>
       <Body className="mb-4">Everything you’ve created, and what it earns — 80% is yours.</Body>
 
       <View className="mb-3 flex-row gap-3">
@@ -38,8 +38,8 @@ export default function Library() {
         <EarningTile label="Paid Out" value={rands(summary.paidOutRands)} tone="text-sage" />
       </View>
       <View className="mb-2 flex-row gap-3">
-        <EarningTile label="Pending" value={rands(summary.pendingRands)} tone="text-deep-teal" />
-        <EarningTile label="Tracks" value={String(summary.salesCount)} tone="text-earth-dark" />
+        <EarningTile label="Pending" value={rands(summary.pendingRands)} tone="text-ink" />
+        <EarningTile label="Tracks" value={String(summary.salesCount)} tone="text-ink" />
       </View>
 
       <Heading className="mb-3 mt-6 text-2xl">Your Tracks</Heading>
@@ -57,7 +57,7 @@ export default function Library() {
         <Card key={p.id} className="mb-3">
           <View className="flex-row items-center justify-between">
             <Heading className="text-lg">{p.name}</Heading>
-            <Body className="font-bold text-burnt-orange">{Math.round(p.commission * 100)}%</Body>
+            <Body className="font-bold text-accent">{Math.round(p.commission * 100)}%</Body>
           </View>
           <Body className="mt-1 text-sm">{p.description} · via {p.partner}</Body>
         </Card>

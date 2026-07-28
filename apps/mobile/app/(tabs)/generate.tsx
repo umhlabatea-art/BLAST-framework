@@ -52,7 +52,7 @@ export default function Generate() {
   return (
     <Screen>
       <View className="mb-2 mt-2 flex-row items-center gap-2">
-        <Display className="text-4xl text-earth-dark">Generate</Display>
+        <Display className="text-2xl text-ink">Generate</Display>
         <Badge label="AI" tone="accent" />
       </View>
       <Body className="mb-4">
@@ -68,7 +68,7 @@ export default function Generate() {
           placeholder="e.g. deep amapiano with a soulful piano hook"
           placeholderTextColor="#8a7a68"
           multiline
-          className="min-h-[80px] rounded-xl border border-ochre bg-background px-4 py-3 font-body text-earth-dark"
+          className="min-h-[80px] rounded-xl border border-line bg-background px-4 py-3 font-body text-ink"
         />
 
         <Body className="mb-2 mt-4 font-bold">Genre</Body>
@@ -105,13 +105,13 @@ export default function Generate() {
           <Card>
             <TrackRow track={result} />
             <View className="mt-2 flex-row flex-wrap gap-2">
-              <Badge label={`${result.bpm} BPM`} tone="sage" />
-              <Badge label={result.key} tone="muted" />
-              {result.progression ? <Badge label={result.progression} tone="primary" /> : null}
+              <Badge label={`${result.bpm} BPM`} tone="success" />
+              <Badge label={result.key} tone="neutral" />
+              {result.progression ? <Badge label={result.progression} tone="accent" /> : null}
             </View>
             <View className="mt-4 flex-row gap-2">
               <View className="flex-1">
-                <Button label="View & Optimize" variant="dark" onPress={() => router.push({ pathname: "/track/[id]", params: { id: result.id } })} />
+                <Button label="View & Optimize" variant="primary" onPress={() => router.push({ pathname: "/track/[id]", params: { id: result.id } })} />
               </View>
             </View>
           </Card>

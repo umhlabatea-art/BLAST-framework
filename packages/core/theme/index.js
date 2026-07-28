@@ -20,60 +20,68 @@ export const palette = tokens.palette;
  */
 export const semantic = tokens.semantic;
 
-/** Font families (loaded in the app via @expo-google-fonts). */
+/**
+ * A single coding-style typeface (IBM Plex Mono) across the whole app for a
+ * calm, minimalist identity. `display` and `body` map to the same family and
+ * differ only by weight where used.
+ */
 export const fonts = {
-  display: "BebasNeue", // headings / logo
-  body: "Ubuntu", // UI body
-  serif: "CrimsonText", // editorial subtitles
+  display: "IBMPlexMono", // headings — heavier weight applied in components
+  body: "IBMPlexMono", // UI body
 };
 
-/** Subscription tiers — mirrors the pricing in the product prototype (ZAR). */
+/**
+ * Subscription tiers — standard SaaS practice: three plans, round monthly
+ * prices in ZAR, an ~2-months-free annual price, and short, scannable feature
+ * lists. The most popular plan is flagged.
+ */
 export const tiers = [
   {
     id: "free",
-    name: "Free Creator",
+    name: "Free",
     priceRands: 0,
-    period: "Forever Free",
+    annualRands: 0,
+    period: "forever",
+    tagline: "Start creating, keep 80%.",
     agents: [],
     features: [
-      "Upload & generate unlimited music",
+      "Unlimited AI music generation",
       "80% revenue share",
+      "Artist profile & community",
       "Basic analytics",
-      "Artist profile page",
-      "Community access",
     ],
   },
   {
     id: "pro",
-    name: "Artist Pro",
-    priceRands: 111,
+    name: "Pro",
+    priceRands: 99,
+    annualRands: 990,
     period: "per month",
     highlighted: true,
+    tagline: "Grow your audience on autopilot.",
     agents: ["crm", "seo", "marketing", "legal"],
     features: [
-      "Everything in Free, plus:",
-      "CRM & Lead Generation AI",
-      "SEO/AEO Optimization AI",
-      "Marketing & Social Media AI",
-      "Advanced analytics & insights",
+      "Everything in Free",
+      "CRM, SEO/AEO & Marketing agents",
+      "Rights automation (SAMRO · CAPASSO · RISA)",
       "Priority payouts (24–48h)",
-      "Basic legal document automation",
+      "Advanced analytics",
     ],
   },
   {
-    id: "premium",
-    name: "Studio Premium",
-    priceRands: 350,
+    id: "studio",
+    name: "Studio",
+    priceRands: 299,
+    annualRands: 2990,
     period: "per month",
+    tagline: "The full studio, powered by AI.",
     agents: ["crm", "seo", "marketing", "legal", "mixing", "visual"],
     features: [
-      "Everything in Artist Pro, plus:",
-      "AI Mixing & Mastering",
-      "4K Image & Video Enhancement",
-      "Print-on-Demand Integration",
-      "Full legal automation (SAMRO, CAPASSO, RISA)",
-      "Financial super agent",
-      "Studio services discount (10%)",
+      "Everything in Pro",
+      "AI mixing & mastering",
+      "4K visuals & print-on-demand",
+      "Financial & tax agent",
+      "10% off studio services",
     ],
   },
 ];

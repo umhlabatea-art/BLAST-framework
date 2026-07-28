@@ -22,7 +22,7 @@ export default function Profile() {
 
   return (
     <Screen>
-      <Display className="mb-4 mt-2 text-4xl text-earth-dark">Profile</Display>
+      <Display className="mb-4 mt-2 text-2xl text-ink">Profile</Display>
 
       {user ? (
         <Card className="mb-4">
@@ -31,7 +31,7 @@ export default function Profile() {
             <View className="flex-1">
               <Heading className="text-xl" numberOfLines={1}>{user.email}</Heading>
               <View className="mt-1">
-                <Badge label={`${user.tier} tier`} tone={user.tier === "free" ? "muted" : "accent"} />
+                <Badge label={`${user.tier} plan`} tone={user.tier === "free" ? "neutral" : "accent"} />
               </View>
             </View>
           </View>
@@ -44,14 +44,15 @@ export default function Profile() {
         </Card>
       )}
 
-      <Heading className="mb-3 text-2xl">Manage</Heading>
-      <Row label="Subscriptions & AI Agents" href="/subscriptions" />
-      <Row label="Rights Hub (SAMRO · CAPASSO · RISA)" href="/compliance" />
-      <Row label="Your Library & Earnings" href="/(tabs)/library" />
+      <Heading className="mb-3 text-lg">Manage</Heading>
+      <Row label="Plans & AI agents" href="/subscriptions" />
+      <Row label="Rights hub (SAMRO · CAPASSO · RISA)" href="/compliance" />
+      <Row label="Your library & earnings" href="/(tabs)/library" />
+      <Row label="AI provider (OpenRouter key)" href="/settings" />
 
       {user ? (
         <View className="mt-4">
-          <Button label="Log out" variant="dark" onPress={logout} />
+          <Button label="Log out" variant="primary" onPress={logout} />
         </View>
       ) : null}
 
