@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -18,19 +18,24 @@ import { useSettings } from "../src/store/settings";
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
     IBMPlexMono_700Bold,
   });
 
+  // Never block the UI indefinitely on font loading — if fonts fail or stall,
+  // render anyway (the system monospace stands in for IBM Plex Mono).
+  const [fontTimeout, setFontTimeout] = useState(false);
   useEffect(() => {
     // Restore the saved OpenRouter key/model so AI tasks can run live.
     useSettings.getState().load();
+    const t = setTimeout(() => setFontTimeout(true), 1500);
+    return () => clearTimeout(t);
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError && !fontTimeout) {
     return <View style={{ flex: 1, backgroundColor: palette.paper }} />;
   }
 
