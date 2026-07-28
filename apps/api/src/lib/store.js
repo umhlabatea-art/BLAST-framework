@@ -10,6 +10,10 @@
  *   findUserById(id)                    -> user | null
  *   recordPayment({ userId, ... })      -> payment
  *   listPaymentsByUser(userId)          -> payment[]
+ *
+ * Domain collections (tracks, community posts, rights registrations) are stored
+ * through a small generic `collection(name)` helper so new modules can persist
+ * user-generated records without expanding this file's surface each time.
  */
 import crypto from "node:crypto";
 
@@ -17,8 +21,39 @@ export function createInMemoryStore() {
   const usersById = new Map();
   const usersByEmail = new Map();
   const payments = new Map();
+  const collections = new Map(); // name -> Map(id -> record)
+
+  function collection(name) {
+    if (!collections.has(name)) collections.set(name, new Map());
+    return collections.get(name);
+  }
 
   return {
+    /**
+     * Generic per-collection CRUD used by the domain modules. Records get a
+     * uuid + createdAt automatically. `insert` returns the stored record;
+     * `list` returns newest-first and accepts an optional filter predicate.
+     */
+    async insert(name, record) {
+      const stored = { id: record.id || crypto.randomUUID(), createdAt: new Date().toISOString(), ...record };
+      collection(name).set(stored.id, stored);
+      return stored;
+    },
+    async get(name, id) {
+      return collection(name).get(id) || null;
+    },
+    async update(name, id, patch) {
+      const existing = collection(name).get(id);
+      if (!existing) return null;
+      const next = { ...existing, ...patch };
+      collection(name).set(id, next);
+      return next;
+    },
+    async list(name, predicate) {
+      const all = [...collection(name).values()].reverse();
+      return predicate ? all.filter(predicate) : all;
+    },
+
     async createUser({ email, passwordHash }) {
       const normalized = email.toLowerCase();
       if (usersByEmail.has(normalized)) {

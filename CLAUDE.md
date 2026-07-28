@@ -21,7 +21,15 @@ Umhlawati is an AI-powered development ecosystem. It bundles:
 | `/skills/`      | Executable `SKILL.md` recipes + their helper scripts.              |
 | `/mcp-server/`  | Custom Model Context Protocol server (stdio transport).            |
 | `/agent/`       | Hermes orchestrator and the LLM-as-judge critic loop.             |
-| `/src/`         | BLAST application code (`frontend/` + `backend/`).                |
+| `/packages/core/` | Shared types, mock data, brand theme, and deterministic AI-agent stubs (music-gen · SEO/AEO · compliance · revenue). Imported by both apps. |
+| `/apps/api/`    | Modular Express BLAST API (auth, tracks, generate, community, subscriptions, revenue, compliance, agents). |
+| `/apps/mobile/` | Expo / React Native + NativeWind (Tailwind) app — the platform UI. |
+
+> The repo is an npm-workspaces monorepo. `apps/api` and `packages/core` are
+> linked via workspaces; `apps/mobile` resolves `@umhlabatea/core` through the
+> monorepo (its own `npm install`, plus Metro's watch-folder config). Both apps
+> import shared logic from `@umhlabatea/core` — change domain logic there, never
+> in two places.
 
 ## Coding Standards
 

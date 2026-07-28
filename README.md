@@ -1,62 +1,87 @@
-# Umhlawati
+# Umhlabatea
 
-An AI-powered development ecosystem — prompt workflows, automation skills, a
-custom MCP server, a self-correcting agent, and a runnable application stack.
-Built in four phases; every component runs and is tested offline (no API keys
-required to try it).
+A community-centric, SEO/AEO-optimised **AI music platform** for South African
+artists, with embedded AI agents for music generation, rights registration
+(SAMRO · CAPASSO · RISA), and revenue pipelines. Built on the Umhlawati
+AI-development ecosystem (prompt workflows, skills, a custom MCP server, and a
+self-correcting agent).
 
-## Layout
+Everything runs **offline-first**: on a fresh clone, with no API keys, database,
+or network, the whole platform is usable and tested — real services swap in via
+environment variables alone.
+
+## Monorepo layout
 
 ```
-umhlawati/
+umhlabatea/
 ├── CLAUDE.md            # AI operating directives for this repo
 ├── .env.example         # configuration template
-├── prompts/             # Phase 1 — reusable prompt workflows
-│   ├── plan-mode.md          architect-before-code
-│   ├── website-build.md      3-step competitor → design → ship
-│   ├── critic-review.md      LLM-as-judge rubric (drives the agent loop)
-│   └── debug.md              methodical failure isolation
-├── skills/              # Phase 2 — executable automation recipes
-│   └── context-digest/       SKILL.md + runnable digest.js
-├── mcp-server/          # Phase 2 — sandboxed MCP server (stdio)
-├── agent/               # Phase 3 — Hermes orchestrator + critic loop
-└── src/                 # Phase 4 — BLAST application
-    ├── backend/              Express API: JWT auth + Stripe-stub payments
-    └── frontend/             minimal vanilla-JS client
+├── package.json         # npm workspaces + orchestration scripts
+├── prompts/             # reusable prompt workflows (plan · build · critic · debug)
+├── skills/              # executable automation recipes
+├── mcp-server/          # sandboxed MCP server (stdio)
+├── agent/               # Hermes orchestrator + LLM critic loop
+├── packages/
+│   └── core/            # shared types, mock data, brand theme, and the
+│                        #   deterministic offline AI-agent stubs
+│                        #   (music-gen · SEO/AEO · compliance · revenue)
+└── apps/
+    ├── api/             # modular Express API (BLAST): auth, tracks, generate,
+    │                    #   community, subscriptions, revenue, compliance, agents
+    └── mobile/          # Expo / React Native + NativeWind (Tailwind) app
 ```
 
 ## Quick start
 
-Each module is self-contained. From the repo root:
-
 ```bash
-# MCP server
-cd mcp-server && npm install && npm run smoke
+npm install                      # links the workspace (packages/core → apps/api)
 
-# Agent (offline, deterministic mock provider)
-cd ../agent && npm test && node hermes.js "Write an email validator"
+# Run every backend test suite (core + API)
+npm test                         # 11 core + 21 API tests
 
-# BLAST app
-cd ../src/backend && npm install && npm test
-PORT=3000 npm start          # then open http://localhost:3000
+# API only
+npm run dev:api                  # http://localhost:5000
+
+# Mobile app (offline mock by default)
+cd apps/mobile && npm install && npm run start
 ```
 
-## BLAST
+## The BLAST app
 
-The application framework: **B**ackend · **L**ogic · **A**uth · **S**torage ·
-**T**ransactions. It runs entirely on in-memory + stub services out of the box.
-To go live, set environment variables (see `.env.example`):
+**B**ackend · **L**ogic · **A**uth · **S**torage · **T**ransactions — the API in
+`apps/api`. It runs on in-memory + stub services out of the box and delegates all
+domain logic to `@umhlabatea/core`, so the app and API never diverge. To go live,
+set environment variables (see `.env.example`):
 
 - `AUTH_SECRET` — long random string for signing tokens.
 - `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` and `npm i stripe` — switches
   payments from stub to live with no code changes.
-- `DATABASE_URL` — swap the in-memory store for Postgres/Supabase.
+- `EXPO_PUBLIC_API_URL` — points the mobile app at the live API.
+
+## AI agents (offline stubs, live-swappable)
+
+All agents live in `packages/core/agents` as pure, deterministic functions:
+
+| Agent        | What it does                                                        |
+| ------------ | ------------------------------------------------------------------- |
+| `musicGen`   | Prompt → fully-formed Track (deterministic; real Suno/Replicate later) |
+| `seoAeo`     | Track → meta, keywords, voice-search phrases, schema.org JSON-LD     |
+| `compliance` | SAMRO/CAPASSO/RISA submission prep + a registration state machine    |
+| `revenue`    | 80/20 split, payout scheduling, affiliate income                    |
+
+A real LLM (see `agent/provider.js`, Anthropic/OpenRouter/Ollama) drops in behind
+the same function signatures without touching any caller.
+
+> **Rights bodies note:** SAMRO, CAPASSO and RISA expose no public API, so the
+> compliance agent *prepares and tracks* submissions (fields, CSV rows, ISRCs) —
+> it does not call a live endpoint.
 
 ## Status
 
-| Phase | Component        | Verified                              |
-| ----- | ---------------- | ------------------------------------- |
-| 1     | Foundation       | files in place                        |
-| 2     | MCP + Skill      | MCP smoke test passes (incl. sandbox) |
-| 3     | Agent            | 5/5 tests pass; Hermes self-corrects  |
-| 4     | BLAST app        | 11/11 backend tests pass; serves live |
+| Component          | Verified                                            |
+| ------------------ | --------------------------------------------------- |
+| `packages/core`    | 11/11 unit tests pass                               |
+| `apps/api`         | 21/21 API tests pass                                |
+| `apps/mobile`      | `tsc --noEmit` clean; static web export builds (17 routes) |
+| MCP + Skill        | MCP smoke test passes (incl. sandbox)               |
+| Agent              | 5/5 tests pass; Hermes self-corrects                |

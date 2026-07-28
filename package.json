@@ -1,0 +1,20 @@
+{
+  "name": "umhlabatea-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Umhlabatea — community-centric, SEO/AEO-optimised AI music platform for South African artists. Monorepo: Expo/React Native app, Express API, and a shared offline-first core.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/api"
+  ],
+  "scripts": {
+    "test": "npm run test -w @umhlabatea/core && npm run test -w @umhlabatea/api",
+    "dev:api": "npm run dev -w @umhlabatea/api",
+    "start:api": "npm run start -w @umhlabatea/api",
+    "dev:mobile": "npm --prefix apps/mobile run start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
