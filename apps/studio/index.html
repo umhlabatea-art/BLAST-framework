@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Umhlabatea Studio Hub</title>
+<meta name="description" content="Umhlabatea Studio Hub — AI music platform, in-browser production studio, and voice/meeting recorder for South African artists." />
+<!-- Progressive font enhancement. Blocked hosts (e.g. inside an Artifact CSP) fall
+     back silently to the system monospace stack, keeping the IBM coding-font look. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Base — minimalist "paper & ink" system (shared with the mobile app) */
+    --paper: #FAF8F4;
+    --surface: #FFFFFF;
+    --ink: #1C1917;
+    --ink-soft: #78716C;
+    --line: #EBE6DE;
+    --accent: #E4572E;
+    --accent-soft: #FBEAE2;
+    --sage: #6B8F71;
+    --gold: #C9A227;
+    --danger: #DC2626;
+    --ok: #15803D;
+    /* Retro-console accents (Studio + player zones) */
+    --console: #211E1B;
+    --console-2: #2B2723;
+    --console-line: #3A342E;
+    --led: #E4572E;
+    --led-green: #7DD181;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--mono);
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  a { color: inherit; text-decoration: none; }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  ::selection { background: var(--accent-soft); }
+
+  /* ---------- Layout ---------- */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  header.topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; background: rgba(250,248,244,.9);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: baseline; gap: 6px; font-weight: 700; letter-spacing: -.5px; }
+  .brand .dot { color: var(--accent); }
+  .brand small { font-weight: 500; color: var(--ink-soft); letter-spacing: 2px; font-size: 10px; text-transform: uppercase; }
+  .grow { flex: 1; }
+  .iconbtn {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 10px;
+    padding: 7px 11px; cursor: pointer; font-weight: 600; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 6px; transition: .15s;
+  }
+  .iconbtn:hover { border-color: var(--ink); }
+
+  /* Bottom nav (mobile-first, becomes top tabs on wide screens) */
+  nav.tabs {
+    position: sticky; bottom: 0; z-index: 40;
+    display: flex; gap: 2px; padding: 6px; overflow-x: auto;
+    background: rgba(250,248,244,.95); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+  }
+  nav.tabs button {
+    flex: 1 0 auto; min-width: 72px; border: 0; background: transparent; cursor: pointer;
+    padding: 8px 10px; border-radius: 10px; color: var(--ink-soft);
+    font-weight: 600; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: .15s;
+  }
+  nav.tabs button .ico { font-size: 17px; line-height: 1; }
+  nav.tabs button[aria-current="true"] { color: var(--ink); background: var(--accent-soft); }
+  main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 18px 16px 28px; }
+  section[data-zone] { display: none; animation: fade .25s ease; }
+  section[data-zone].active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Primitives ---------- */
+  .display { font-weight: 700; letter-spacing: -.6px; font-size: 26px; line-height: 1.15; }
+  .h2 { font-weight: 600; font-size: 18px; letter-spacing: -.3px; }
+  .muted { color: var(--ink-soft); }
+  .label { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; font-weight: 600; color: var(--ink-soft); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .wrap { flex-wrap: wrap; }
+  .stack > * + * { margin-top: 12px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--ink-soft); background: var(--surface); }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .badge { border-radius: 7px; padding: 2px 8px; font-size: 10px; font-weight: 700; display: inline-block; }
+  .badge.accent { background: var(--accent-soft); color: var(--accent); }
+  .badge.ok { background: #E7F3EA; color: var(--ok); }
+  .badge.mut { background: #0000000a; color: var(--ink-soft); }
+  .btn {
+    border: 1px solid var(--ink); background: var(--ink); color: #fff; border-radius: 11px;
+    padding: 11px 16px; font-weight: 600; cursor: pointer; transition: .15s; width: 100%;
+  }
+  .btn:hover { opacity: .92; }
+  .btn.accent { background: var(--accent); border-color: var(--accent); }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.sm { width: auto; padding: 8px 12px; font-size: 12px; border-radius: 9px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  input[type=text], input[type=password], input[type=search], textarea, select {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+    padding: 11px 12px; outline: none; transition: .15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--ink); }
+  textarea { resize: vertical; min-height: 90px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .divider { height: 1px; background: var(--line); margin: 14px 0; }
+  .cover { border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 700; }
+
+  /* ---------- Home / marketing ---------- */
+  .hero { padding: 6px 0 4px; }
+  .hero h1 { font-size: 30px; line-height: 1.1; letter-spacing: -1px; font-weight: 700; }
+  .hero h1 .accent { color: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+  .stat { text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 12px 6px; background: var(--surface); }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { font-size: 10px; }
+  .feature { display: flex; gap: 12px; align-items: flex-start; }
+  .feature .ico { font-size: 20px; }
+  .ticker { max-height: 168px; overflow: hidden; position: relative; }
+  .ticker .item { padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+
+  /* ---------- Studio (retro console) ---------- */
+  .console { background: var(--console); color: #EDE7DE; border-radius: 16px; padding: 14px; border: 1px solid var(--console-line); }
+  .console .h2, .console .label { color: #EDE7DE; }
+  .console .muted { color: #B7AEA2; }
+  .transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tbtn {
+    width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--console-line);
+    background: var(--console-2); color: #EDE7DE; cursor: pointer; font-size: 18px; display: grid; place-items: center;
+  }
+  .tbtn.play.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .led { width: 9px; height: 9px; border-radius: 50%; background: #4a433c; box-shadow: inset 0 0 2px #000; }
+  .led.on { background: var(--led); box-shadow: 0 0 8px var(--led); }
+  .seq { display: grid; gap: 6px; margin-top: 12px; }
+  .seqrow { display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center; }
+  .seqrow .name { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+  .step {
+    aspect-ratio: 1; border-radius: 5px; border: 1px solid var(--console-line);
+    background: var(--console-2); cursor: pointer; transition: .06s;
+  }
+  .step.on { background: var(--accent); border-color: var(--accent); }
+  .step.beat { border-color: #554d44; }
+  .step.playhead { outline: 2px solid var(--led-green); outline-offset: -2px; }
+  .mixer { display: grid; gap: 10px; margin-top: 10px; }
+  .ch { border: 1px solid var(--console-line); border-radius: 10px; padding: 10px; background: var(--console-2); }
+  .ch .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .knobs { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+  .knob label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #B7AEA2; margin-bottom: 3px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .mini { border: 0; background: var(--console-line); color: #EDE7DE; border-radius: 7px; padding: 5px 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .mini.on { background: var(--accent); }
+  .eqguide { font-size: 11px; }
+  .eqguide code { color: var(--accent); }
+
+  /* ---------- Cassette player ---------- */
+  .tape { background: linear-gradient(180deg,#2b2723,#211e1b); border-radius: 16px; padding: 16px; color: #EDE7DE; border: 1px solid var(--console-line); }
+  .reels { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 14px 0; }
+  .reel { width: 58px; height: 58px; border-radius: 50%; border: 3px solid #6b6259; position: relative; background: repeating-radial-gradient(circle, #3a342e 0 3px, #2b2723 3px 6px); }
+  .reel.spin { animation: spin 2.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reel::after { content:""; position:absolute; inset:22px; border-radius:50%; background:#1b1815; }
+  .queue .qitem { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--console-line); font-size:12px; cursor:pointer; }
+  .queue .qitem.on { color: var(--accent); }
+
+  /* ---------- Recorder ---------- */
+  .rec-dot { width:10px; height:10px; border-radius:50%; background:var(--danger); }
+  .rec-dot.live { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .transcript { min-height: 130px; max-height: 240px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--surface); white-space:pre-wrap; }
+  .transcript .interim { color: var(--ink-soft); }
+  .minutes h4 { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-soft); margin-top:10px; }
+  .minutes ul { margin:6px 0 0 18px; }
+  .minutes li { margin:3px 0; }
+
+  /* ---------- Modal / toast ---------- */
+  .modal-bg { position:fixed; inset:0; background:rgba(28,25,23,.45); display:none; align-items:flex-end; justify-content:center; z-index:60; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px; max-height:88vh; overflow:auto; }
+  @media(min-width:560px){ .modal-bg{align-items:center} .modal{border-radius:18px} }
+  .toast { position:fixed; left:50%; bottom:76px; transform:translateX(-50%) translateY(20px); opacity:0; background:var(--ink); color:#fff; padding:10px 16px; border-radius:11px; font-size:12px; font-weight:600; z-index:70; transition:.25s; pointer-events:none; max-width:90%; text-align:center; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .foot { text-align:center; font-size:11px; color:var(--ink-soft); margin-top:22px; }
+  @media (min-width:560px){ .display{font-size:30px} .hero h1{font-size:38px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">umhlabatea<span class="dot">.</span><small>studio hub</small></div>
+    <div class="grow"></div>
+    <button class="iconbtn" id="aiStatus" onclick="Hub.openSettings()">◍ Offline stub</button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section data-zone="home" class="active">
+      <div class="hero stack">
+        <div>
+          <div class="label">For South African artists</div>
+          <h1>Your Music. Your Land.<br><span class="accent">Your Future.</span></h1>
+          <p class="muted" style="margin-top:10px">One hub: distribution &amp; payouts, an in-browser production studio, six AI agents, SAMRO/CAPASSO/RISA compliance, and a voice &amp; meeting recorder that wires into all of it.</p>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn accent" onclick="Hub.go('studio')">Open the Studio</button>
+          <button class="btn ghost" style="width:auto" onclick="Hub.go('voice')">Record</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>80%</b><span class="muted">to artists</span></div>
+          <div class="stat"><b>48h</b><span class="muted">payouts</span></div>
+          <div class="stat"><b>6</b><span class="muted">AI agents</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="label">Why umhlabatea</div>
+      <div class="stack" style="margin-top:10px">
+        <div class="card feature"><div class="ico">💸</div><div><b>80/20 revenue split</b><div class="muted">Artists keep 80% of every sale. Payouts in 48–72h, settled in rand.</div></div></div>
+        <div class="card feature"><div class="ico">🎛️</div><div><b>In-browser studio</b><div class="muted">Beat sequencer, mixer &amp; EQ tuned for Amapiano and more — no install.</div></div></div>
+        <div class="card feature"><div class="ico">⚖️</div><div><b>SAMRO · CAPASSO · RISA</b><div class="muted">Automated rights registration. Stay compliant without the paperwork.</div></div></div>
+        <div class="card feature"><div class="ico">🎙️</div><div><b>Voice &amp; meeting minutes</b><div class="muted">Dictate ideas, record sessions, get AI minutes, attach them anywhere.</div></div></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="row between"><div class="label">Live on the platform</div><span class="badge accent">● live</span></div>
+      <div class="card ticker" id="ticker" style="margin-top:10px"></div>
+
+      <div class="divider"></div>
+      <div class="label">Featured artists</div>
+      <div class="stack" id="featured" style="margin-top:10px"></div>
+      <div class="foot">© 2026 umhlabatea studios · Built in South Africa · SAMRO · CAPASSO · POPIA</div>
+    </section>
+
+    <!-- STUDIO -->
+    <section data-zone="studio">
+      <div class="row between">
+        <div><div class="label">Production studio</div><div class="display">Studio</div></div>
+        <button class="btn sm ghost" onclick="Studio.loadPreset('amapiano')">⚡ Amapiano preset</button>
+      </div>
+      <p class="muted" style="margin:8px 0 14px">A real Web Audio engine — synthesized drums, log drum &amp; bass. Tap steps, hit play, mix and EQ each channel, then save your beat as a track.</p>
+
+      <div class="console stack">
+        <div class="transport">
+          <button class="tbtn play" id="playBtn" onclick="Studio.toggle()">▶</button>
+          <div class="led" id="playLed"></div>
+          <div>
+            <div class="label">Tempo</div>
+            <div class="row" style="gap:6px"><input type="range" min="80" max="140" value="115" id="bpm" oninput="Studio.setBpm(this.value)" style="width:120px"><b id="bpmVal">115</b><span class="muted">BPM</span></div>
+          </div>
+          <div class="grow"></div>
+          <div>
+            <div class="label">Master</div>
+            <input type="range" min="0" max="100" value="80" id="master" oninput="Studio.setMaster(this.value)" style="width:90px">
+          </div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:6px">Sequencer · 16 steps</div>
+          <div class="seq" id="seq"></div>
+        </div>
+      </div>
+
+      <div class="row between" style="margin:16px 0 8px"><div class="label">Mixer &amp; EQ</div><span class="chip">3-band per channel</span></div>
+      <div class="mixer" id="mixer"></div>
+
+      <div class="card stack" style="margin-top:14px">
+        <div class="label">Bounce</div>
+        <input type="text" id="beatTitle" placeholder="Name your beat (e.g. Sunrise Log Drum)" />
+        <button class="btn accent" onclick="Studio.saveTrack()">＋ Save beat as a track</button>
+        <div class="muted" style="font-size:11px">Saved beats appear in Library and can be registered for rights, optimised by the SEO agent, and annotated from the recorder.</div>
+      </div>
+
+      <div class="card eqguide stack" style="margin-top:14px">
+        <div class="label">EQ quick reference <span class="muted">· from your guide</span></div>
+        <div id="eqguide"></div>
+      </div>
+    </section>
+
+    <!-- STUDIOS / PLAYER -->
+    <section data-zone="player">
+      <div class="label">Umhlabatea Studios</div>
+      <div class="display">The Player</div>
+      <p class="muted" style="margin:8px 0 14px">Retro vibes, modern sound. The B.A.Hz (Born Again Hooliganz) Retroblend radio show.</p>
+      <div class="tape">
+        <div class="row between"><div class="label" style="color:#EDE7DE">◉ RBX-9000</div><span class="badge mut" id="tapeState">■ STOPPED</span></div>
+        <div class="reels"><div class="reel" id="reelL"></div><div class="reel" id="reelR"></div></div>
+        <div style="text-align:center">
+          <b id="tapeTitle">EP.001 — B.A.Hz</b>
+          <div class="muted" style="font-size:12px">Retroblend Radio Show · Side A</div>
+        </div>
+        <div class="row" style="justify-content:center; gap:14px; margin:14px 0">
+          <button class="tbtn" onclick="Player.prev()">⏮</button>
+          <button class="tbtn play" id="tapePlay" onclick="Player.toggle()">▶</button>
+          <button class="tbtn" onclick="Player.next()">⏭</button>
+        </div>
+        <div class="label" style="color:#EDE7DE; margin-bottom:6px">Track queue · 12 episodes</div>
+        <div class="queue" id="queue"></div>
+      </div>
+      <p class="muted" style="font-size:11px; margin-top:10px">The cassette player is a visual homage — episodes stream in the full app. Playback here drives the reels animation.</p>
+    </section>
+
+    <!-- VOICE & MINUTES -->
+    <section data-zone="voice">
+      <div class="label">Voice &amp; meeting minutes</div>
+      <div class="display">Recorder</div>
+      <p class="muted" style="margin:8px 0 14px">Dictate song ideas or capture a session/meeting. Live transcription, audio capture, and AI-generated minutes — then attach the notes to anything in the hub.</p>
+
+      <div class="card stack">
+        <div class="row between">
+          <div class="row" style="gap:8px"><span class="rec-dot" id="recDot"></span><b id="recLabel">Ready</b></div>
+          <span class="badge mut" id="recTimer">00:00</span>
+        </div>
+        <div class="grid2">
+          <button class="btn" id="recBtn" onclick="Recorder.toggle()">● Start recording</button>
+          <button class="btn ghost" id="dictBtn" onclick="Recorder.toggleDictation()">🎤 Live dictation</button>
+        </div>
+        <audio id="audioOut" controls style="width:100%; display:none"></audio>
+        <div>
+          <div class="label" style="margin-bottom:6px">Transcript <span class="muted" id="sttNote"></span></div>
+          <div class="transcript" id="transcript" contenteditable="true" spellcheck="false"></div>
+        </div>
+        <div class="grid2">
+          <button class="btn accent" onclick="Recorder.makeMinutes()">✦ Generate minutes</button>
+          <button class="btn ghost" onclick="Recorder.attachPrompt()">🔗 Attach to…</button>
+        </div>
+      </div>
+
+      <div class="card minutes stack" id="minutesCard" style="margin-top:14px; display:none">
+        <div class="row between"><div class="label">Meeting minutes</div><span class="badge" id="minutesSrc"></span></div>
+        <div id="minutesBody"></div>
+        <div class="grid2">
+          <button class="btn ghost sm" onclick="Recorder.attachPrompt('minutes')">🔗 Attach minutes</button>
+          <button class="btn ghost sm" onclick="Recorder.copyMinutes()">⧉ Copy</button>
+        </div>
+      </div>
+
+      <div class="card stack" style="margin-top:14px">
+        <div class="label">Recent notes across the hub</div>
+        <div id="notesList"></div>
+      </div>
+    </section>
+
+    <!-- AGENTS -->
+    <section data-zone="agents">
+      <div class="label">Your team</div>
+      <div class="display">6 AI Agents</div>
+      <p class="muted" style="margin:8px 0 14px">A personal team of specialists — some are interactive here, running on-device (or via your OpenRouter key).</p>
+      <div class="stack" id="agents"></div>
+    </section>
+
+    <!-- RIGHTS -->
+    <section data-zone="rights">
+      <div class="label">Compliance</div>
+      <div class="display">Rights Hub</div>
+      <p class="muted" style="margin:8px 0 14px">The legal agent prepares and tracks registrations with the collecting bodies. Pick a track, prepare a submission, and advance it through the pipeline.</p>
+      <div class="card stack">
+        <div class="label">Track to register</div>
+        <select id="regTrack"></select>
+      </div>
+      <div class="stack" id="bodies" style="margin-top:14px"></div>
+      <div class="row between" style="margin:16px 0 8px"><div class="label">Your registrations</div></div>
+      <div class="stack" id="regs"></div>
+    </section>
+
+    <!-- PRICING -->
+    <section data-zone="pricing">
+      <div class="label">Plans</div>
+      <div class="display">Fair pricing</div>
+      <p class="muted" style="margin:8px 0 14px">No hidden fees. No long contracts. Artists always keep 80%.</p>
+      <div class="stack" id="tiers"></div>
+      <div class="foot">Prices in ZAR · cancel anytime · VAT included</div>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs"></nav>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="settingsBg" onclick="if(event.target===this)Hub.closeSettings()">
+  <div class="modal stack">
+    <div class="row between"><div class="h2">AI provider</div><button class="iconbtn" onclick="Hub.closeSettings()">✕</button></div>
+    <p class="muted" style="font-size:12px">Paste an OpenRouter API key to run live AI (meeting minutes, SEO). Stored only in this browser and sent solely to OpenRouter. Without a key, the hub uses on-device stubs.</p>
+    <div><div class="label" style="margin-bottom:6px">OpenRouter API key</div><input type="password" id="orKey" placeholder="sk-or-..." /></div>
+    <div><div class="label" style="margin-bottom:6px">Model</div><input type="text" id="orModel" placeholder="anthropic/claude-3.5-sonnet" /></div>
+    <div class="grid2">
+      <button class="btn" onclick="Hub.saveSettings()">Save</button>
+      <button class="btn ghost" onclick="Hub.clearSettings()">Remove key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Attach modal -->
+<div class="modal-bg" id="attachBg" onclick="if(event.target===this)Hub.closeAttach()">
+  <div class="modal stack">
+    <div class="row between"><div class="h2">Attach note</div><button class="iconbtn" onclick="Hub.closeAttach()">✕</button></div>
+    <p class="muted" style="font-size:12px">Connect this transcript / minutes to anywhere in the hub.</p>
+    <div><div class="label" style="margin-bottom:6px">Where</div>
+      <select id="attachTarget" onchange="Hub.renderAttachItems()">
+        <option value="track">🎵 A track</option>
+        <option value="registration">⚖️ A rights registration</option>
+        <option value="post">💬 A community post</option>
+        <option value="agent">🤖 An AI agent task</option>
+      </select>
+    </div>
+    <div id="attachItems"></div>
+    <button class="btn accent" onclick="Hub.confirmAttach()">Attach</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+   Umhlabatea Studio Hub — self-contained, dependency-free.
+   Zones: Home · Studio (Web Audio) · Player · Voice/Minutes · Agents · Rights · Pricing
+   A single localStorage-backed store links every zone ("connected to all options").
+   ========================================================================== */
+"use strict";
+
+/* ---------------- Store (the shared spine) ---------------- */
+const STORE_KEY = "umhlabatea.hub.v1";
+const uid = (p) => p + "_" + Math.random().toString(36).slice(2, 8);
+
+const Store = {
+  data: null,
+  seed() {
+    return {
+      settings: { openRouterKey: "", model: "anthropic/claude-3.5-sonnet" },
+      tracks: [
+        { id: "trk_ithemba", title: "Ithemba Lami", artist: "Nomusa Dlamini", genre: "Afro-Soul", plays: 24500, price: 150, notes: [] },
+        { id: "trk_gqom", title: "Gqom Nation", artist: "Sipho Mkhize", genre: "Amapiano", plays: 89200, price: 180, notes: [] },
+        { id: "trk_ubuntu", title: "Ubuntu Rising", artist: "Thandiwe Cele", genre: "Maskandi", plays: 56100, price: 120, notes: [] },
+        { id: "trk_jozi", title: "Streets of Jozi", artist: "Bongani Nkosi", genre: "Hip-Hop", plays: 112000, price: 200, notes: [] },
+      ],
+      registrations: [],
+      posts: [
+        { id: uid("post"), author: "Sizwe D.", body: "Log drum tips for 115 BPM?", notes: [] },
+        { id: uid("post"), author: "Ayanda K.", body: "Who's in for a Durban session this weekend?", notes: [] },
+      ],
+      agentTasks: [],
+      notes: [],
+    };
+  },
+  load() {
+    try { this.data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { this.data = null; }
+    if (!this.data) { this.data = this.seed(); this.save(); }
+    return this.data;
+  },
+  save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {} },
+};
+
+/* ---------------- AI provider (OpenRouter, with offline fallback) ---------------- */
+const AI = {
+  hasKey() { return !!(Store.data.settings.openRouterKey || "").trim(); },
+  async chat(system, user) {
+    const s = Store.data.settings;
+    if (!this.hasKey()) return null;
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + s.openRouterKey.trim() },
+        body: JSON.stringify({ model: s.model || "anthropic/claude-3.5-sonnet", messages: [
+          { role: "system", content: system }, { role: "user", content: user },
+        ] }),
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      return j.choices?.[0]?.message?.content || null;
+    } catch (e) { return null; }
+  },
+};
+
+/* ---------------- Hub (nav, settings, cross-linking) ---------------- */
+const TABS = [
+  { id: "home", ico: "⌂", label: "Home" },
+  { id: "studio", ico: "🎛", label: "Studio" },
+  { id: "player", ico: "📻", label: "Player" },
+  { id: "voice", ico: "🎙", label: "Record" },
+  { id: "agents", ico: "🤖", label: "Agents" },
+  { id: "rights", ico: "⚖", label: "Rights" },
+  { id: "pricing", ico: "◆", label: "Plans" },
+];
+
+const Hub = {
+  zone: "home",
+  init() {
+    Store.load();
+    const tabs = document.getElementById("tabs");
+    tabs.innerHTML = TABS.map(t => `<button data-tab="${t.id}" onclick="Hub.go('${t.id}')"><span class="ico">${t.ico}</span>${t.label}</button>`).join("");
+    this.renderAll();
+    this.go("home");
+    this.refreshAiStatus();
+  },
+  go(zone) {
+    this.zone = zone;
+    document.querySelectorAll("section[data-zone]").forEach(s => s.classList.toggle("active", s.dataset.zone === zone));
+    document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === zone ? "true" : "false"));
+    if (zone !== "player") Player.stopReels();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    // Re-render dynamic zones that depend on the store
+    if (zone === "voice") Recorder.renderNotes();
+    if (zone === "rights") Rights.render();
+    if (zone === "studio") Studio.render();
+  },
+  renderAll() {
+    Home.render(); Studio.render(); Player.render(); Agents.render(); Rights.render(); Pricing.render(); Recorder.renderNotes();
+  },
+  toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove("show"), 2200);
+  },
+  /* settings */
+  openSettings() {
+    document.getElementById("orKey").value = Store.data.settings.openRouterKey || "";
+    document.getElementById("orModel").value = Store.data.settings.model || "";
+    document.getElementById("settingsBg").classList.add("open");
+  },
+  closeSettings() { document.getElementById("settingsBg").classList.remove("open"); },
+  saveSettings() {
+    Store.data.settings.openRouterKey = document.getElementById("orKey").value.trim();
+    Store.data.settings.model = document.getElementById("orModel").value.trim() || "anthropic/claude-3.5-sonnet";
+    Store.save(); this.closeSettings(); this.refreshAiStatus(); this.toast("Settings saved");
+  },
+  clearSettings() { Store.data.settings.openRouterKey = ""; Store.save(); this.closeSettings(); this.refreshAiStatus(); this.toast("Key removed"); },
+  refreshAiStatus() {
+    const el = document.getElementById("aiStatus");
+    if (AI.hasKey()) { el.textContent = "◉ Live · OpenRouter"; el.style.borderColor = "var(--ok)"; el.style.color = "var(--ok)"; }
+    else { el.textContent = "◍ Offline stub"; el.style.borderColor = "var(--line)"; el.style.color = "var(--ink)"; }
+  },
+  /* attach flow */
+  _attachPayload: null,
+  openAttach(payload) { this._attachPayload = payload; this.renderAttachItems(); document.getElementById("attachBg").classList.add("open"); },
+  closeAttach() { document.getElementById("attachBg").classList.remove("open"); },
+  renderAttachItems() {
+    const target = document.getElementById("attachTarget").value;
+    const map = { track: Store.data.tracks.map(t => [t.id, t.title + " — " + t.artist]),
+      registration: Store.data.registrations.map(r => [r.id, r.bodyName + " · " + r.trackTitle]),
+      post: Store.data.posts.map(p => [p.id, p.author + ": " + p.body.slice(0, 30)]),
+      agent: Store.data.agentTasks.map(a => [a.id, a.agent + " · " + a.title]) };
+    const items = map[target] || [];
+    const el = document.getElementById("attachItems");
+    if (!items.length) { el.innerHTML = `<p class="muted" style="font-size:12px">Nothing here yet — create one in its zone first.</p>`; return; }
+    el.innerHTML = `<div class="label" style="margin-bottom:6px">Item</div><select id="attachItem">` +
+      items.map(([id, lab]) => `<option value="${id}">${Hub.esc(lab)}</option>`).join("") + `</select>`;
+  },
+  confirmAttach() {
+    const target = document.getElementById("attachTarget").value;
+    const itemEl = document.getElementById("attachItem");
+    if (!itemEl) return this.toast("Nothing to attach to");
+    const id = itemEl.value;
+    const p = this._attachPayload;
+    const note = { id: uid("note"), kind: p.kind, text: p.text, target, targetId: id, at: Date.now() };
+    Store.data.notes.unshift(note);
+    const coll = { track: "tracks", registration: "registrations", post: "posts", agent: "agentTasks" }[target];
+    const item = (Store.data[coll] || []).find(x => x.id === id);
+    if (item) { item.notes = item.notes || []; item.notes.push(note.id); }
+    Store.save(); this.closeAttach();
+    this.toast("Attached ✓ note now lives on that " + target);
+    Recorder.renderNotes(); Studio.render(); Rights.render();
+  },
+  esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); },
+  fmt(n) { return n >= 1000 ? (n / 1000).toFixed(1) + "K" : "" + n; },
+  seedColor(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h},38%,45%)`; },
+};
+
+/* ---------------- Home ---------------- */
+const Home = {
+  purchases: [
+    ["Sizwe D.", "Piano Sessions Vol. 2", "Sipho Mkhize", "Soweto", 180],
+    ["Ayanda K.", "Homecoming (Album)", "Nomusa Dlamini", "Gqeberha", 150],
+    ["Lerato M.", "Jozi Live — Front Row", "Bongani Nkosi", "Cape Town", 480],
+    ["Thabo N.", "Studio Tip", "Nomusa Dlamini", "Durban", 60],
+    ["Zanele P.", "Ubuntu Rising", "Thandiwe Cele", "Polokwane", 120],
+  ],
+  render() {
+    document.getElementById("ticker").innerHTML = this.purchases.map(([b, t, a, city, r]) =>
+      `<div class="item"><b>${Hub.esc(b)}</b> bought <b>${Hub.esc(t)}</b> · ${Hub.esc(a)} · ${city} · <span class="badge accent">R${r}</span></div>`).join("");
+    document.getElementById("featured").innerHTML = Store.data.tracks.map(t =>
+      `<div class="card row between"><div class="row" style="gap:12px"><div class="cover" style="width:46px;height:46px;background:${Hub.seedColor(t.artist)}">${Hub.esc(t.artist[0])}</div><div><b>${Hub.esc(t.artist)}</b><div class="muted" style="font-size:12px">${Hub.esc(t.title)} · ${Hub.esc(t.genre)}</div></div></div><div class="muted" style="font-size:12px">▶ ${Hub.fmt(t.plays)}</div></div>`).join("");
+  },
+};
+
+/* ---------------- Studio: Web Audio engine ---------------- */
+const INSTRUMENTS = [
+  { id: "kick",  name: "Kick",     synth: "kick" },
+  { id: "snare", name: "Snare",    synth: "snare" },
+  { id: "hat",   name: "Hi-hat",   synth: "hat" },
+  { id: "clap",  name: "Clap",     synth: "clap" },
+  { id: "log",   name: "Log drum", synth: "log" },
+  { id: "bass",  name: "Bass",     synth: "bass" },
+  { id: "shkr",  name: "Shaker",   synth: "shaker" },
+];
+
+const Studio = {
+  ctx: null, master: null, analyser: null,
+  bpm: 115, playing: false, curStep: 0, nextTime: 0, timer: null,
+  channels: {}, // id -> {gain, pan, eqLow, eqMid, eqHigh, mute, solo, vol}
+  pattern: {},  // id -> [16 bools]
+  state: { vol: {}, pan: {}, eq: {} },
+  built: false,
+
+  ensureCtx() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.8;
+    this.analyser = this.ctx.createAnalyser();
+    this.master.connect(this.analyser); this.analyser.connect(this.ctx.destination);
+    INSTRUMENTS.forEach(inst => {
+      const g = this.ctx.createGain(); g.gain.value = this.state.vol[inst.id] ?? 0.8;
+      const pan = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+      const low = this.ctx.createBiquadFilter(); low.type = "lowshelf"; low.frequency.value = 120;
+      const mid = this.ctx.createBiquadFilter(); mid.type = "peaking"; mid.frequency.value = 1000; mid.Q.value = 0.8;
+      const high = this.ctx.createBiquadFilter(); high.type = "highshelf"; high.frequency.value = 6000;
+      low.connect(mid); mid.connect(high); high.connect(g);
+      if (pan) { g.connect(pan); pan.connect(this.master); } else { g.connect(this.master); }
+      this.channels[inst.id] = { input: low, gain: g, pan, low, mid, high, mute: false, solo: false };
+      const e = this.state.eq[inst.id]; if (e) { low.gain.value = e.low; mid.gain.value = e.mid; high.gain.value = e.high; }
+      if (pan && this.state.pan[inst.id] != null) pan.pan.value = this.state.pan[inst.id];
+    });
+  },
+
+  initPattern() {
+    if (Object.keys(this.pattern).length) return;
+    INSTRUMENTS.forEach(i => this.pattern[i.id] = new Array(16).fill(false));
+  },
+
+  render() {
+    this.initPattern();
+    // sequencer grid
+    const seq = document.getElementById("seq");
+    seq.innerHTML = INSTRUMENTS.map(inst => {
+      const steps = this.pattern[inst.id].map((on, i) =>
+        `<div class="step ${on ? "on" : ""} ${i % 4 === 0 ? "beat" : ""}" data-i="${i}" data-inst="${inst.id}" onclick="Studio.toggleStep('${inst.id}',${i})"></div>`).join("");
+      return `<div class="seqrow"><div class="name"><span class="led" data-led="${inst.id}"></span>${inst.name}</div><div class="steps">${steps}</div></div>`;
+    }).join("");
+    // mixer
+    const mixer = document.getElementById("mixer");
+    mixer.innerHTML = INSTRUMENTS.map(inst => {
+      const vol = Math.round((this.state.vol[inst.id] ?? 0.8) * 100);
+      const pan = Math.round((this.state.pan[inst.id] ?? 0) * 100);
+      const e = this.state.eq[inst.id] || { low: 0, mid: 0, high: 0 };
+      return `<div class="ch">
+        <div class="top"><b style="font-size:13px">${inst.name}</b>
+          <div class="row" style="gap:6px">
+            <button class="mini" data-m="mute" data-id="${inst.id}" onclick="Studio.toggleFlag('${inst.id}','mute',this)">M</button>
+            <button class="mini" data-m="solo" data-id="${inst.id}" onclick="Studio.toggleFlag('${inst.id}','solo',this)">S</button>
+          </div>
+        </div>
+        <div class="row" style="gap:10px; margin-top:8px">
+          <div style="flex:1"><label class="label" style="color:#B7AEA2">Vol</label><input type="range" min="0" max="100" value="${vol}" oninput="Studio.setVol('${inst.id}',this.value)"></div>
+          <div style="flex:1"><label class="label" style="color:#B7AEA2">Pan</label><input type="range" min="-100" max="100" value="${pan}" oninput="Studio.setPan('${inst.id}',this.value)"></div>
+        </div>
+        <div class="knobs">
+          <div class="knob"><label>Low</label><input type="range" min="-12" max="12" value="${e.low}" oninput="Studio.setEq('${inst.id}','low',this.value)"></div>
+          <div class="knob"><label>Mid</label><input type="range" min="-12" max="12" value="${e.mid}" oninput="Studio.setEq('${inst.id}','mid',this.value)"></div>
+          <div class="knob"><label>High</label><input type="range" min="-12" max="12" value="${e.high}" oninput="Studio.setEq('${inst.id}','high',this.value)"></div>
+        </div>
+      </div>`;
+    }).join("");
+    // eq guide
+    document.getElementById("eqguide").innerHTML = [
+      ["Sub-bass 20–60 Hz", "feel it, don't hear it — kick &amp; bass fundamentals"],
+      ["Mud zone 200–400 Hz", "usually <code>cut</code> to clean up the low-mids"],
+      ["Presence 2–4 kHz", "vocal &amp; piano clarity — <code>boost</code> gently"],
+      ["Air 10–12 kHz", "shimmer &amp; brilliance for a modern sheen"],
+    ].map(([a, b]) => `<div style="padding:4px 0"><b>${a}</b> — <span class="muted">${b}</span></div>`).join("");
+  },
+
+  toggleStep(id, i) {
+    this.pattern[id][i] = !this.pattern[id][i];
+    const el = document.querySelector(`.step[data-inst="${id}"][data-i="${i}"]`);
+    el.classList.toggle("on", this.pattern[id][i]);
+    if (this.pattern[id][i]) { this.ensureCtx(); this.trigger(id, this.ctx.currentTime); }
+  },
+  toggleFlag(id, flag, btn) {
+    this.ensureCtx();
+    const ch = this.channels[id]; ch[flag] = !ch[flag]; btn.classList.toggle("on", ch[flag]);
+    this.applyMutes();
+  },
+  applyMutes() {
+    const anySolo = INSTRUMENTS.some(i => this.channels[i.id]?.solo);
+    INSTRUMENTS.forEach(i => {
+      const ch = this.channels[i.id]; if (!ch) return;
+      const audible = anySolo ? ch.solo : !ch.mute;
+      ch.gain.gain.value = audible ? (this.state.vol[i.id] ?? 0.8) : 0;
+    });
+  },
+  setVol(id, v) { this.state.vol[id] = v / 100; if (this.channels[id]) this.applyMutes(); },
+  setPan(id, v) { this.state.pan[id] = v / 100; if (this.channels[id]?.pan) this.channels[id].pan.pan.value = v / 100; },
+  setEq(id, band, v) {
+    this.state.eq[id] = this.state.eq[id] || { low: 0, mid: 0, high: 0 };
+    this.state.eq[id][band] = +v;
+    if (this.channels[id]) this.channels[id][band].gain.value = +v;
+  },
+  setBpm(v) { this.bpm = +v; document.getElementById("bpmVal").textContent = v; },
+  setMaster(v) { this.ensureCtx(); this.master.gain.value = v / 100; },
+
+  toggle() {
+    this.ensureCtx();
+    if (this.ctx.state === "suspended") this.ctx.resume();
+    this.playing = !this.playing;
+    document.getElementById("playBtn").classList.toggle("on", this.playing);
+    document.getElementById("playBtn").textContent = this.playing ? "❚❚" : "▶";
+    document.getElementById("playLed").classList.toggle("on", this.playing);
+    if (this.playing) { this.curStep = 0; this.nextTime = this.ctx.currentTime + 0.05; this.scheduler(); }
+    else { clearTimeout(this.timer); this.clearPlayhead(); }
+  },
+  scheduler() {
+    if (!this.playing) return;
+    const stepDur = 60 / this.bpm / 4; // 16th notes
+    while (this.nextTime < this.ctx.currentTime + 0.1) {
+      const step = this.curStep;
+      INSTRUMENTS.forEach(i => { if (this.pattern[i.id][step]) this.trigger(i.id, this.nextTime); });
+      this.drawPlayhead(step);
+      this.nextTime += stepDur;
+      this.curStep = (this.curStep + 1) % 16;
+    }
+    this.timer = setTimeout(() => this.scheduler(), 25);
+  },
+  drawPlayhead(step) {
+    const t = (this.nextTime - this.ctx.currentTime) * 1000;
+    setTimeout(() => {
+      document.querySelectorAll(".step.playhead").forEach(e => e.classList.remove("playhead"));
+      document.querySelectorAll(`.step[data-i="${step}"]`).forEach(e => e.classList.add("playhead"));
+      INSTRUMENTS.forEach(i => { if (this.pattern[i.id][step]) { const l = document.querySelector(`[data-led="${i.id}"]`); if (l) { l.classList.add("on"); setTimeout(() => l.classList.remove("on"), 90); } } });
+    }, Math.max(0, t));
+  },
+  clearPlayhead() { document.querySelectorAll(".step.playhead").forEach(e => e.classList.remove("playhead")); },
+
+  /* --- drum/synth voices --- */
+  trigger(id, time) {
+    const ch = this.channels[id]; if (!ch) return;
+    const dest = ch.input; const ctx = this.ctx;
+    const map = { kick: this.vKick, snare: this.vSnare, hat: this.vHat, clap: this.vClap, log: this.vLog, bass: this.vBass, shaker: this.vShaker };
+    const inst = INSTRUMENTS.find(i => i.id === id);
+    (map[inst.synth] || this.vKick).call(this, ctx, dest, time);
+  },
+  env(gain, time, a, d, peak) { gain.gain.setValueAtTime(0.0001, time); gain.gain.exponentialRampToValueAtTime(peak, time + a); gain.gain.exponentialRampToValueAtTime(0.0001, time + a + d); },
+  noiseBuf() {
+    if (this._noise) return this._noise;
+    const n = this.ctx.sampleRate * 1; const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return this._noise = buf;
+  },
+  vKick(ctx, dest, t) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    this.env(g, t, 0.005, 0.32, 1); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.4);
+  },
+  vSnare(ctx, dest, t) {
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf();
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1200;
+    const g = ctx.createGain(); this.env(g, t, 0.002, 0.18, 0.7);
+    n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.2);
+    const o = ctx.createOscillator(), g2 = ctx.createGain(); o.type = "triangle"; o.frequency.value = 180;
+    this.env(g2, t, 0.002, 0.1, 0.4); o.connect(g2); g2.connect(dest); o.start(t); o.stop(t + 0.12);
+  },
+  vHat(ctx, dest, t) {
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf();
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 7000;
+    const g = ctx.createGain(); this.env(g, t, 0.001, 0.05, 0.35);
+    n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.06);
+  },
+  vClap(ctx, dest, t) {
+    for (let k = 0; k < 3; k++) {
+      const n = ctx.createBufferSource(); n.buffer = this.noiseBuf();
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1500;
+      const g = ctx.createGain(); const tt = t + k * 0.012; this.env(g, tt, 0.001, 0.09, 0.5);
+      n.connect(bp); bp.connect(g); g.connect(dest); n.start(tt); n.stop(tt + 0.12);
+    }
+  },
+  vLog(ctx, dest, t) { // signature amapiano log drum: pitch-swept sine w/ soft click
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.18);
+    this.env(g, t, 0.004, 0.34, 0.9);
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain(); o2.type = "square"; o2.frequency.setValueAtTime(400, t); o2.frequency.exponentialRampToValueAtTime(120, t + 0.05);
+    this.env(g2, t, 0.001, 0.04, 0.15);
+    o.connect(g); g.connect(dest); o2.connect(g2); g2.connect(dest);
+    o.start(t); o.stop(t + 0.4); o2.start(t); o2.stop(t + 0.08);
+  },
+  vBass(ctx, dest, t) {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "triangle"; o.frequency.value = 55;
+    this.env(g, t, 0.01, 0.3, 0.8); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.34);
+  },
+  vShaker(ctx, dest, t) {
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf();
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 5000;
+    const g = ctx.createGain(); this.env(g, t, 0.005, 0.06, 0.25);
+    n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.08);
+  },
+
+  loadPreset(name) {
+    this.initPattern();
+    if (name === "amapiano") {
+      // 115 BPM amapiano-flavoured groove
+      this.pattern.kick = idx([0, 4, 8, 12]);
+      this.pattern.snare = idx([4, 12]);
+      this.pattern.hat = idx([2, 6, 10, 14]);
+      this.pattern.shkr = idx([1, 3, 5, 7, 9, 11, 13, 15]);
+      this.pattern.log = idx([6, 7, 10, 14, 15]);
+      this.pattern.bass = idx([0, 8]);
+      this.pattern.clap = idx([12]);
+      this.setBpm(115); document.getElementById("bpm").value = 115;
+    }
+    this.render();
+    Hub.toast("Amapiano preset loaded — hit play ▶");
+    function idx(list) { const a = new Array(16).fill(false); list.forEach(i => a[i] = true); return a; }
+  },
+
+  saveTrack() {
+    const title = (document.getElementById("beatTitle").value || "").trim() || "Untitled Beat";
+    const active = INSTRUMENTS.filter(i => this.pattern[i.id]?.some(Boolean)).map(i => i.name);
+    const t = { id: uid("trk"), title, artist: "You", genre: "Amapiano", plays: 0, price: 120, bpm: this.bpm, elements: active, notes: [] };
+    Store.data.tracks.unshift(t); Store.save();
+    document.getElementById("beatTitle").value = "";
+    Home.render(); Rights.render();
+    Hub.toast(`"${title}" saved to your library ✓`);
+  },
+};
+
+/* ---------------- Player (retro cassette) ---------------- */
+const Player = {
+  idx: 0, playing: false,
+  eps: Array.from({ length: 12 }, (_, i) => `EP.${String(i + 1).padStart(3, "0")} — B.A.Hz`),
+  render() {
+    document.getElementById("queue").innerHTML = this.eps.map((e, i) =>
+      `<div class="qitem ${i === this.idx ? "on" : ""}" onclick="Player.select(${i})"><span>${e}</span><span>${i === this.idx && this.playing ? "▶" : "·"}</span></div>`).join("");
+    document.getElementById("tapeTitle").textContent = this.eps[this.idx];
+  },
+  select(i) { this.idx = i; this.render(); if (!this.playing) this.toggle(); },
+  prev() { this.idx = (this.idx + this.eps.length - 1) % this.eps.length; this.render(); },
+  next() { this.idx = (this.idx + 1) % this.eps.length; this.render(); },
+  toggle() {
+    this.playing = !this.playing;
+    document.getElementById("tapePlay").textContent = this.playing ? "❚❚" : "▶";
+    document.getElementById("tapePlay").classList.toggle("on", this.playing);
+    document.getElementById("tapeState").textContent = this.playing ? "▶ PLAYING" : "■ STOPPED";
+    document.getElementById("reelL").classList.toggle("spin", this.playing);
+    document.getElementById("reelR").classList.toggle("spin", this.playing);
+    this.render();
+  },
+  stopReels() { if (this.playing) this.toggle(); },
+};
+
+/* ---------------- Recorder (dictation + audio + minutes) ---------------- */
+const Recorder = {
+  rec: null, chunks: [], recording: false, stream: null,
+  recog: null, dictating: false, sttSupported: false,
+  t0: 0, timerInt: null, minutes: null,
+  init() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.sttSupported = !!SR;
+    document.getElementById("sttNote").textContent = this.sttSupported ? "· editable" : "· type or paste (dictation not supported on this browser)";
+    if (SR) {
+      this.recog = new SR(); this.recog.continuous = true; this.recog.interimResults = true; this.recog.lang = "en-ZA";
+      this.recog.onresult = (e) => this.onResult(e);
+      this.recog.onend = () => { if (this.dictating) { try { this.recog.start(); } catch (x) {} } };
+      this.recog.onerror = () => {};
+    }
+  },
+  fmtTime(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); },
+  startTimer() { this.t0 = Date.now(); this.timerInt = setInterval(() => document.getElementById("recTimer").textContent = this.fmtTime(Date.now() - this.t0), 500); },
+  stopTimer() { clearInterval(this.timerInt); },
+
+  async toggle() {
+    if (this.recording) return this.stop();
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) { Hub.toast("Mic permission needed to record"); return; }
+    this.chunks = [];
+    try { this.rec = new MediaRecorder(this.stream); } catch (e) { Hub.toast("Recording not supported here"); return; }
+    this.rec.ondataavailable = (ev) => { if (ev.data.size) this.chunks.push(ev.data); };
+    this.rec.onstop = () => {
+      const blob = new Blob(this.chunks, { type: this.chunks[0]?.type || "audio/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById("audioOut"); a.src = url; a.style.display = "block";
+    };
+    this.rec.start(); this.recording = true; this.startTimer();
+    document.getElementById("recDot").classList.add("live");
+    document.getElementById("recLabel").textContent = "Recording…";
+    document.getElementById("recBtn").textContent = "■ Stop";
+    if (this.sttSupported && !this.dictating) this.toggleDictation(); // capture transcript alongside audio
+  },
+  stop() {
+    if (this.rec && this.rec.state !== "inactive") this.rec.stop();
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    this.recording = false; this.stopTimer();
+    document.getElementById("recDot").classList.remove("live");
+    document.getElementById("recLabel").textContent = "Saved";
+    document.getElementById("recBtn").textContent = "● Start recording";
+    if (this.dictating) this.toggleDictation();
+  },
+  toggleDictation() {
+    if (!this.sttSupported) { Hub.toast("Type in the transcript box — dictation isn't supported here"); document.getElementById("transcript").focus(); return; }
+    this.dictating = !this.dictating;
+    const b = document.getElementById("dictBtn");
+    b.classList.toggle("accent", this.dictating);
+    b.textContent = this.dictating ? "🎤 Listening…" : "🎤 Live dictation";
+    if (this.dictating) { try { this.recog.start(); } catch (x) {} } else { try { this.recog.stop(); } catch (x) {} }
+  },
+  onResult(e) {
+    const tr = document.getElementById("transcript");
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) tr.dataset.final = (tr.dataset.final || "") + r[0].transcript + " ";
+      else interim += r[0].transcript;
+    }
+    tr.innerHTML = Hub.esc(tr.dataset.final || "") + `<span class="interim">${Hub.esc(interim)}</span>`;
+    tr.scrollTop = tr.scrollHeight;
+  },
+  transcriptText() {
+    const tr = document.getElementById("transcript");
+    return (tr.dataset.final || tr.innerText || "").replace(/\s+/g, " ").trim();
+  },
+  async makeMinutes() {
+    const text = this.transcriptText();
+    if (text.length < 12) { Hub.toast("Add a bit more transcript first"); return; }
+    Hub.toast(AI.hasKey() ? "Generating minutes via OpenRouter…" : "Generating minutes (offline)…");
+    let md = null;
+    if (AI.hasKey()) {
+      md = await AI.chat(
+        "You are a meeting-minutes assistant for a music studio. Given a raw transcript, reply in compact markdown with exactly these sections: '## Summary' (2-3 sentences), '## Decisions' (bullet list), '## Action items' (bullet list, prefix each with an owner if named).",
+        text);
+    }
+    const parsed = md ? this.parseMd(md) : this.localMinutes(text);
+    this.minutes = { ...parsed, src: md ? "OpenRouter" : "Offline", text };
+    this.renderMinutes();
+  },
+  parseMd(md) {
+    const grab = (h) => { const re = new RegExp("##\\s*" + h + "([\\s\\S]*?)(?=\\n##|$)", "i"); const m = md.match(re); return m ? m[1].trim() : ""; };
+    const bullets = (s) => s.split(/\n/).map(l => l.replace(/^[-*\d.\s]+/, "").trim()).filter(Boolean);
+    return { summary: grab("Summary").replace(/^[-*\s]+/, ""), decisions: bullets(grab("Decisions")), actions: bullets(grab("Action items") || grab("Actions")) };
+  },
+  localMinutes(text) {
+    const sents = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 4);
+    const summary = sents.slice(0, 2).join(" ") || text.slice(0, 160);
+    const decisions = sents.filter(s => /\b(decid|agree|will|going to|final|approv)\b/i.test(s)).slice(0, 5);
+    const actions = sents.filter(s => /\b(need to|action|todo|to-do|follow up|send|book|record|mix|master|register|upload|call|email)\b/i.test(s)).slice(0, 6);
+    return { summary, decisions: decisions.length ? decisions : ["—"], actions: actions.length ? actions : ["—"] };
+  },
+  renderMinutes() {
+    const m = this.minutes; if (!m) return;
+    document.getElementById("minutesCard").style.display = "block";
+    document.getElementById("minutesSrc").textContent = m.src;
+    document.getElementById("minutesSrc").className = "badge " + (m.src === "OpenRouter" ? "ok" : "mut");
+    const li = (arr) => arr.map(x => `<li>${Hub.esc(x)}</li>`).join("");
+    document.getElementById("minutesBody").innerHTML =
+      `<h4>Summary</h4><div>${Hub.esc(m.summary)}</div>` +
+      `<h4>Decisions</h4><ul>${li(m.decisions)}</ul>` +
+      `<h4>Action items</h4><ul>${li(m.actions)}</ul>`;
+    document.getElementById("minutesCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  },
+  copyMinutes() {
+    const m = this.minutes; if (!m) return;
+    const txt = `MEETING MINUTES\n\nSummary\n${m.summary}\n\nDecisions\n- ${m.decisions.join("\n- ")}\n\nAction items\n- ${m.actions.join("\n- ")}`;
+    navigator.clipboard?.writeText(txt); Hub.toast("Minutes copied");
+  },
+  attachPrompt(kind) {
+    let text, k;
+    if (kind === "minutes" && this.minutes) {
+      k = "minutes";
+      text = `Summary: ${this.minutes.summary} | Actions: ${this.minutes.actions.join("; ")}`;
+    } else {
+      k = "transcript"; text = this.transcriptText();
+    }
+    if (!text || text.length < 4) { Hub.toast("Nothing to attach yet"); return; }
+    Hub.openAttach({ kind: k, text });
+  },
+  renderNotes() {
+    const list = document.getElementById("notesList");
+    if (!Store.data.notes.length) { list.innerHTML = `<p class="muted" style="font-size:12px">No notes yet. Record something and tap “Attach to…”.</p>`; return; }
+    const labelFor = (n) => {
+      const coll = { track: "tracks", registration: "registrations", post: "posts", agent: "agentTasks" }[n.target];
+      const item = (Store.data[coll] || []).find(x => x.id === n.targetId);
+      const name = item ? (item.title || item.bodyName || item.body || item.title || n.targetId) : n.targetId;
+      return `${n.target} · ${Hub.esc(String(name).slice(0, 28))}`;
+    };
+    list.innerHTML = Store.data.notes.slice(0, 8).map(n =>
+      `<div style="padding:9px 0; border-bottom:1px dashed var(--line)"><div class="row between"><span class="badge ${n.kind === "minutes" ? "accent" : "mut"}">${n.kind}</span><span class="muted" style="font-size:11px">→ ${labelFor(n)}</span></div><div style="font-size:12px; margin-top:4px">${Hub.esc(n.text.slice(0, 120))}${n.text.length > 120 ? "…" : ""}</div></div>`).join("");
+  },
+};
+
+/* ---------------- Agents ---------------- */
+const AGENTS = [
+  { id: "crm", ico: "🤝", name: "CRM agent", desc: "Identifies hot prospects and nurtures fan relationships.", action: "Find superfans" },
+  { id: "seo", ico: "🔎", name: "SEO / AEO agent", desc: "Optimises metadata, tags and descriptions for discovery.", action: "Optimise a track" },
+  { id: "marketing", ico: "📣", name: "Marketing agent", desc: "Creates campaigns and schedules social posts.", action: "Draft a campaign" },
+  { id: "mixing", ico: "🎚", name: "Mixing agent", desc: "Studio-grade mix & master guidance in minutes.", action: "Mix checklist" },
+  { id: "visual", ico: "🖼", name: "Visual agent", desc: "Upscales artwork to 4K and generates album art.", action: "Queue artwork" },
+  { id: "legal", ico: "⚖️", name: "Legal agent", desc: "SAMRO/CAPASSO registration & contracts.", action: "Contract template" },
+];
+const Agents = {
+  render() {
+    document.getElementById("agents").innerHTML = AGENTS.map(a =>
+      `<div class="card stack">
+        <div class="row between"><div class="row" style="gap:10px"><div class="ico" style="font-size:22px">${a.ico}</div><div><b>${a.name}</b><div class="muted" style="font-size:12px">${a.desc}</div></div></div><span class="badge ok">active</span></div>
+        <button class="btn ghost sm" onclick="Agents.run('${a.id}')">${a.action}</button>
+        <div id="agentOut_${a.id}"></div>
+      </div>`).join("");
+  },
+  async run(id) {
+    const out = document.getElementById("agentOut_" + id);
+    if (id === "mixing") {
+      out.innerHTML = box(["Gain-stage: peaks at −10 to −6 dB", "Cut the 200–400 Hz mud zone", "Leave −6 dB headroom on the master", "Reference against a −14 LUFS track", "High-pass everything that isn't sub"]);
+      this.log("Mixing", "Mix checklist"); return;
+    }
+    if (id === "legal") {
+      out.innerHTML = box(["Producer Agreement — work-for-hire", "Splits: Producer __% / Artist __%", "Publishing: SAMRO registration on release", "Master rights: CAPASSO mechanical", "Governing law: Republic of South Africa"], "Contract template");
+      this.log("Legal", "Contract template"); return;
+    }
+    if (id === "seo") {
+      const t = Store.data.tracks[0];
+      out.innerHTML = `<div class="muted" style="font-size:12px; margin-top:8px">Optimising “${Hub.esc(t.title)}”…</div>`;
+      const seo = seoAeo(t);
+      out.innerHTML = box([`Title: ${seo.title}`, `Keywords: ${seo.keywords.slice(0, 6).join(", ")}`, `Voice search: “${seo.voice}”`], "SEO / AEO");
+      this.log("SEO", "Optimise: " + t.title); return;
+    }
+    // generic task
+    const titles = { crm: "Segment top 100 fans", marketing: "2-week launch campaign", visual: "4K album art render" };
+    this.log(AGENTS.find(a => a.id === id).name, titles[id] || "Task");
+    out.innerHTML = box([`Task queued: ${titles[id] || "working"}`, "Status: running", "You'll be notified on completion"], "Queued");
+    function box(lines, tag) { return `<div class="card" style="margin-top:8px; background:var(--paper)">${tag ? `<div class="label" style="margin-bottom:6px">${tag}</div>` : ""}${lines.map(l => `<div style="font-size:12px; padding:2px 0">· ${Hub.esc(l)}</div>`).join("")}</div>`; }
+  },
+  log(agent, title) {
+    const task = { id: uid("task"), agent, title, at: Date.now(), notes: [] };
+    Store.data.agentTasks.unshift(task); Store.save();
+    Hub.toast(agent + ": " + title);
+  },
+};
+/* lightweight SEO/AEO heuristic (mirrors the core seo agent) */
+function seoAeo(t) {
+  const base = [t.genre, "South Africa", "amapiano", t.artist, "new music", "afrobeat", "stream", t.title, "2026", "umhlabatea"];
+  return { title: `${t.title} — ${t.artist} | ${t.genre}`, keywords: base, voice: `play ${t.title} by ${t.artist}` };
+}
+
+/* ---------------- Rights ---------------- */
+const BODIES = [
+  { id: "samro", name: "SAMRO", right: "Performing rights (composers & authors)" },
+  { id: "capasso", name: "CAPASSO", right: "Mechanical rights (reproduction)" },
+  { id: "risa", name: "RISA", right: "Recording industry / ISRC" },
+];
+const STATES = ["draft", "prepared", "submitted", "registered"];
+const Rights = {
+  render() {
+    const sel = document.getElementById("regTrack");
+    sel.innerHTML = Store.data.tracks.map(t => `<option value="${t.id}">${Hub.esc(t.title)} — ${Hub.esc(t.artist)}</option>`).join("");
+    document.getElementById("bodies").innerHTML = BODIES.map(b =>
+      `<div class="card row between"><div><b>${b.name}</b><div class="muted" style="font-size:12px">${b.right}</div></div><button class="btn sm ghost" onclick="Rights.prepare('${b.id}')">Prepare</button></div>`).join("");
+    const regs = Store.data.registrations;
+    document.getElementById("regs").innerHTML = regs.length ? regs.map(r => this.card(r)).join("")
+      : `<p class="muted" style="font-size:12px">No registrations yet. Prepare one above.</p>`;
+  },
+  card(r) {
+    const idx = STATES.indexOf(r.state);
+    const track = STATES.map((s, i) => `<span class="led ${i <= idx ? "on" : ""}" style="margin-right:4px"></span>`).join("");
+    const noteCount = (r.notes || []).length;
+    return `<div class="card stack">
+      <div class="row between"><b>${r.bodyName}</b><span class="badge ${r.state === "registered" ? "ok" : "mut"}">${r.state}</span></div>
+      <div class="muted" style="font-size:12px">${Hub.esc(r.trackTitle)}${r.isrc ? " · ISRC " + r.isrc : ""}</div>
+      <div class="row">${track}</div>
+      ${noteCount ? `<div class="muted" style="font-size:11px">🔗 ${noteCount} note(s) attached</div>` : ""}
+      ${r.state !== "registered" ? `<button class="btn sm" onclick="Rights.advance('${r.id}')">Advance → ${STATES[idx + 1]}</button>` : `<span class="badge ok">✓ Registered</span>`}
+    </div>`;
+  },
+  prepare(bodyId) {
+    const tId = document.getElementById("regTrack").value;
+    const t = Store.data.tracks.find(x => x.id === tId); if (!t) return;
+    const body = BODIES.find(b => b.id === bodyId);
+    const reg = { id: uid("reg"), bodyId, bodyName: body.name, trackTitle: t.title, state: "prepared", isrc: null, notes: [] };
+    if (bodyId === "risa") reg.isrc = "ZA-U01-26-" + String(Math.floor(Math.random() * 90000) + 10000);
+    Store.data.registrations.unshift(reg); Store.save(); this.render();
+    Hub.toast(`${body.name} submission prepared for “${t.title}”`);
+  },
+  advance(id) {
+    const r = Store.data.registrations.find(x => x.id === id); if (!r) return;
+    const i = STATES.indexOf(r.state); if (i < STATES.length - 1) r.state = STATES[i + 1];
+    Store.save(); this.render(); Hub.toast(`${r.bodyName} → ${r.state}`);
+  },
+};
+
+/* ---------------- Pricing ---------------- */
+const TIERS = [
+  { name: "Starter", price: 0, tagline: "For emerging artists getting started.", features: ["Upload up to 10 tracks", "Basic distribution", "80/20 revenue split", "Community support"], cta: "Get started" },
+  { name: "Pro Artist", price: 299, tagline: "For serious artists ready to grow.", features: ["Unlimited uploads", "All 6 AI agents", "48-hour payouts", "SAMRO/CAPASSO automation", "AI mixing & mastering"], popular: true, cta: "Start Pro trial" },
+  { name: "Label", price: 999, tagline: "For labels managing multiple artists.", features: ["Everything in Pro", "Up to 20 artist accounts", "White-label options", "Dedicated manager", "API access"], cta: "Contact sales" },
+];
+const Pricing = {
+  render() {
+    document.getElementById("tiers").innerHTML = TIERS.map(t =>
+      `<div class="card stack" style="${t.popular ? "border-color:var(--accent)" : ""}">
+        <div class="row between"><b>${t.name}</b>${t.popular ? `<span class="badge accent">Most popular</span>` : ""}</div>
+        <div class="muted" style="font-size:12px">${t.tagline}</div>
+        <div class="row" style="align-items:baseline; gap:4px"><span class="display" style="font-size:24px">${t.price === 0 ? "Free" : "R" + t.price}</span>${t.price ? `<span class="muted">/mo</span>` : ""}</div>
+        <div class="divider" style="margin:6px 0"></div>
+        ${t.features.map(f => `<div class="row" style="gap:8px"><span class="muted">·</span><span>${f}</span></div>`).join("")}
+        <button class="btn ${t.popular ? "accent" : ""}" onclick="Hub.toast('${t.name}: secure checkout opens in live mode (Stripe / PayFast).')">${t.cta}</button>
+      </div>`).join("");
+  },
+};
+
+/* ---------------- boot ---------------- */
+document.addEventListener("DOMContentLoaded", () => { Hub.init(); Recorder.init(); });
+</script>
+</body>
+</html>
