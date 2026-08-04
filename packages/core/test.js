@@ -7,6 +7,7 @@ import { seoAeo } from "./agents/seo.js";
 import { createRegistration, advance, STATES } from "./agents/compliance.js";
 import { splitSale, summarize, affiliateEarning } from "./agents/revenue.js";
 import { generate, generateJob } from "./agents/musicgen.js";
+import { routeAgent } from "./agents/tasks.js";
 import { TRACKS, trackWithArtist, liveSalesFeed, AFFILIATE_PROGRAMS } from "./mock/index.js";
 import { revenueConfig } from "./theme/index.js";
 
@@ -114,6 +115,18 @@ const sampleTrack = trackWithArtist(TRACKS[3]); // African Sunrise (Amapiano)
   assert.deepEqual(f1, f2, "same seed → same feed");
   assert.equal(f1.length, 6);
   ok("liveSalesFeed is deterministic");
+}
+
+// --- Agent-task routing ---
+{
+  assert.equal(routeAgent("Register Ubuntu Rising with SAMRO"), "legal");
+  assert.equal(routeAgent("Mix and master the log drum"), "mixing");
+  assert.equal(routeAgent("Design 4K cover artwork"), "visual");
+  assert.equal(routeAgent("Schedule the launch campaign"), "marketing");
+  assert.equal(routeAgent("Optimise the track metadata for search"), "seo");
+  assert.equal(routeAgent("Follow up with the superfans"), "crm");
+  assert.equal(routeAgent("something unrelated"), "crm", "defaults to crm");
+  ok("routeAgent maps action items to the right agent");
 }
 
 console.log(`\nAll ${passed} core tests passed.`);

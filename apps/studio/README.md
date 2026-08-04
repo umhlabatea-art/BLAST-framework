@@ -17,21 +17,31 @@ builds, which is why the studio and recorder live here.
 | Zone       | What it does                                                                                 |
 | ---------- | -------------------------------------------------------------------------------------------- |
 | **Home**   | Landing / value props, live purchase ticker, featured artists.                               |
-| **Studio** | Real **Web Audio** engine: 16-step sequencer, 7 synthesized voices (kick, snare, hi-hat, clap, signature **log drum**, bass, shaker), per-channel **3-band EQ**, pan, mute/solo, master. Amapiano preset at 115 BPM. Save a beat as a track. |
+| **Studio** | Real **Web Audio** engine: 16-step sequencer, 7 synthesized voices (kick, snare, hi-hat, clap, signature **log drum**, bass, shaker), a melodic **piano-roll** (C-minor pentatonic poly synth), per-channel **3-band EQ** / pan / mute / solo, a master **effects chain** (reverb · delay · compressor), and master gain. Amapiano preset at 115 BPM. **Bounce to .wav** (offline render → 16-bit PCM download) or save the beat as a track. |
 | **Player** | Retro **RBX-9000** cassette player for the B.A.Hz Retroblend show (animated reels + queue).  |
-| **Record** | Live dictation (Web Speech API) + audio capture (MediaRecorder) + **AI meeting minutes** (via the user's OpenRouter key, with an offline heuristic fallback). Attach transcript/minutes to any track, registration, community post, or agent task. |
+| **Record** | Live dictation (Web Speech API) + audio capture (MediaRecorder) + **AI meeting minutes** (via the user's OpenRouter key, with an offline heuristic fallback). Turn action items into **agent tasks** (routed to the right agent), or attach transcript/minutes to any track, registration, community post, or agent task. |
 | **Agents** | The six AI agents (CRM, SEO/AEO, Marketing, Mixing, Visual, Legal). SEO, Mixing and Legal are interactive, drawing on the production/legal reference guides. |
 | **Rights** | SAMRO / CAPASSO / RISA registration pipeline (`draft → prepared → submitted → registered`), with ISRC generation for RISA. |
 | **Plans**  | Starter / Pro Artist / Label pricing.                                                         |
 
 ## The connective tissue
 
-Everything persists in `localStorage` under `umhlabatea.hub.v1`
+Everything persists in `localStorage` under `umhlabatea.hub.v2`
 (`tracks`, `registrations`, `posts`, `agentTasks`, `notes`, `settings`). The
 recorder's **"Attach to…"** flow writes a note reference onto any item in any
-collection, which is what "connected to all other options" means in practice: a
-voice memo can live on a track, a rights registration, a community post, or an
-agent task.
+collection, and **"Create agent tasks"** turns meeting-minutes action items into
+`AgentTask`s routed to the right agent (via `routeAgent` in `@umhlabatea/core`).
+That is what "connected to all other options" means: a voice memo can live on a
+track, a rights registration, a community post, or an agent task.
+
+### Mobile-readable tasks
+
+Agent tasks use the shared `AgentTask` shape from `@umhlabatea/core`. When an
+**API URL** is set in Settings, the hub `POST`s created tasks to
+`/api/agents/tasks` on the backend (`apps/api`); the mobile app's **Agent Tasks**
+screen (`apps/mobile/app/tasks.tsx`) reads the same endpoint, so a task dictated
+in the Studio Hub shows up in the phone app. Offline, tasks stay in the hub's
+local store.
 
 ## AI provider
 
@@ -43,10 +53,12 @@ as the rest of the monorepo.
 
 ## Design
 
-IBM Plex Mono (progressive-enhanced; falls back to the system monospace stack
-when web fonts are blocked, e.g. under an Artifact CSP) on the shared
-paper/ink/accent palette, with a retro-console treatment reserved for the Studio
-and player zones.
+A premium editorial system: **Fraunces** (serif display), **DM Sans** (body),
+and **IBM Plex Mono** (labels/eyebrows), on a **bone / deep-ink / Safety-Gold /
+steel** palette with a subtle film-grain overlay — adapted from the Umhlabatea
+design schematic. Fonts progressive-enhance and fall back to system stacks when
+web fonts are blocked (e.g. under an Artifact CSP). A deep-ink retro-console
+treatment is reserved for the Studio and player zones.
 
 ## Run
 

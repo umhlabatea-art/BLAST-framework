@@ -11,7 +11,7 @@
  *   subscriptions GET  /subscriptions · /payments · POST /checkout · /webhook
  *   revenue       GET  /revenue · /affiliates
  *   compliance    GET  /compliance · /compliance/bodies · POST /compliance · /compliance/:id/advance
- *   agents        POST /agents/seo
+ *   agents        POST /agents/seo · GET /agents/tasks · POST /agents/tasks · /agents/tasks/:id/done
  *   health        GET  /health
  */
 import express from "express";

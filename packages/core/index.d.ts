@@ -124,6 +124,21 @@ export function seoAeo(track: Track): SeoResult;
 export const COMPLIANCE_STATES: ("draft" | "prepared" | "submitted" | "registered")[];
 export const RIGHTS_BODIES: Record<string, { id: string; name: string; right: string }>;
 
+// An actionable task for one of the embedded AI agents. Shared shape so tasks
+// created anywhere (e.g. the Studio Hub's meeting-minutes recorder) are readable
+// by the API and the mobile app alike.
+export interface AgentTask {
+  id: string;
+  agent: string;
+  title: string;
+  detail?: string;
+  source: string; // "recorder" | "studio" | "manual" | ...
+  status: "open" | "done";
+  createdAt: string;
+}
+/** Route an action-item string to the most relevant agent id (crm/seo/marketing/mixing/visual/legal). */
+export function routeAgent(text: string): string;
+
 export interface Writer {
   name: string;
   role?: string;

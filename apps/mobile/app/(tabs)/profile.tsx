@@ -47,6 +47,7 @@ export default function Profile() {
       <Heading className="mb-3 text-lg">Manage</Heading>
       <Row label="Plans & AI agents" href="/subscriptions" />
       <Row label="Rights hub (SAMRO · CAPASSO · RISA)" href="/compliance" />
+      <Row label="AI agent tasks" href="/tasks" />
       <Row label="Your library & earnings" href="/(tabs)/library" />
       <Row label="AI provider (OpenRouter key)" href="/settings" />
 

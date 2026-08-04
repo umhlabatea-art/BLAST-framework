@@ -8,9 +8,17 @@ import type {
   Registration,
   LiveSale,
   Genre,
+  AgentTask,
 } from "@umhlabatea/core";
 
-export type { Track, Artist, CommunityPost, Tier, AffiliateProgram, SeoResult, Registration, LiveSale, Genre };
+export type { Track, Artist, CommunityPost, Tier, AffiliateProgram, SeoResult, Registration, LiveSale, Genre, AgentTask };
+
+export interface NewAgentTask {
+  title: string;
+  agent?: string;
+  detail?: string;
+  source?: string;
+}
 
 export interface AuthUser {
   id: string;
@@ -51,6 +59,9 @@ export interface ApiClient {
 
   // agents
   seo(track: Track): SeoResult;
+  listAgentTasks(): Promise<AgentTask[]>;
+  createAgentTask(input: NewAgentTask): Promise<AgentTask>;
+  completeAgentTask(id: string): Promise<AgentTask>;
 
   // compliance
   listRegistrations(): Promise<Registration[]>;

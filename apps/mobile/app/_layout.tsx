@@ -60,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="subscriptions" options={{ headerShown: true, title: "Plans" }} />
           <Stack.Screen name="compliance" options={{ headerShown: true, title: "Rights Hub" }} />
           <Stack.Screen name="settings" options={{ headerShown: true, title: "Settings" }} />
+          <Stack.Screen name="tasks" options={{ headerShown: true, title: "Agent Tasks" }} />
         </Stack>
       </SafeAreaProvider>
     </QueryClientProvider>

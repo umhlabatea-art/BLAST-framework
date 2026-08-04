@@ -15,12 +15,14 @@ import {
   seoAeo,
   createRegistration,
   advanceRegistration,
+  routeAgent,
 } from "@umhlabatea/core";
-import type { ApiClient, AuthUser, GenerateParams, Track, CommunityPost, Registration } from "./types";
+import type { ApiClient, AuthUser, GenerateParams, Track, CommunityPost, Registration, AgentTask, NewAgentTask } from "./types";
 
 const generated: Track[] = [];
 const posts: CommunityPost[] = [];
 const registrations: Registration[] = [];
+const agentTasks: AgentTask[] = [];
 
 function fakeToken(email: string) {
   return `mock.${Buffer.from(email).toString("base64url")}.token`;
@@ -89,6 +91,29 @@ export const mockClient: ApiClient = {
 
   seo(track) {
     return seoAeo(track);
+  },
+
+  async listAgentTasks() {
+    return [...agentTasks];
+  },
+  async createAgentTask(input: NewAgentTask) {
+    const task: AgentTask = {
+      id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      agent: input.agent || routeAgent(input.title),
+      title: input.title,
+      detail: input.detail || "",
+      source: input.source || "manual",
+      status: "open",
+      createdAt: new Date().toISOString(),
+    };
+    agentTasks.unshift(task);
+    return task;
+  },
+  async completeAgentTask(id: string) {
+    const t = agentTasks.find((x) => x.id === id);
+    if (!t) throw new Error("Task not found");
+    t.status = "done";
+    return t;
   },
 
   async listRegistrations() {

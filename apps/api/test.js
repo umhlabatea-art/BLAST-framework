@@ -223,6 +223,39 @@ try {
     ok("SEO agent returns bounded metadata + JSON-LD");
   }
 
+  // --- agent tasks (shared with the mobile app) ---
+  {
+    const empty = await api("GET", "/api/agents/tasks");
+    assert.equal(empty.status, 200);
+    assert.equal(empty.json.tasks.length, 0, "no tasks initially");
+
+    const bad = await api("POST", "/api/agents/tasks", { body: { title: "  " } });
+    assert.equal(bad.status, 400);
+
+    const created = await api("POST", "/api/agents/tasks", {
+      body: { title: "Register Ubuntu Rising with SAMRO", source: "recorder" },
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.json.task.agent, "legal", "SAMRO routes to the legal agent");
+    assert.equal(created.json.task.status, "open");
+    assert.equal(created.json.task.source, "recorder");
+    const taskId = created.json.task.id;
+
+    const mix = await api("POST", "/api/agents/tasks", { body: { title: "Mix and master the log drum" } });
+    assert.equal(mix.json.task.agent, "mixing", "mix/master routes to the mixing agent");
+
+    const list = await api("GET", "/api/agents/tasks");
+    assert.equal(list.json.tasks.length, 2, "tasks are listed for the mobile app to read");
+
+    const done = await api("POST", `/api/agents/tasks/${taskId}/done`);
+    assert.equal(done.status, 200);
+    assert.equal(done.json.task.status, "done");
+
+    const missing = await api("POST", "/api/agents/tasks/nope/done");
+    assert.equal(missing.status, 404);
+    ok("agent tasks create, route to an agent, list, and complete");
+  }
+
   console.log(`\nAll ${passed} API tests passed.`);
 } finally {
   server.close();

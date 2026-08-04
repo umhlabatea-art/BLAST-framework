@@ -10,7 +10,7 @@ import {
   tiers,
   seoAeo,
 } from "@umhlabatea/core";
-import type { ApiClient, AuthUser, GenerateParams, Track, CommunityPost, Registration } from "./types";
+import type { ApiClient, AuthUser, GenerateParams, Track, CommunityPost, Registration, AgentTask, NewAgentTask } from "./types";
 import { getToken } from "../store/auth";
 
 const BASE = process.env.EXPO_PUBLIC_API_URL || "";
@@ -81,6 +81,19 @@ export const httpClient: ApiClient = {
   },
   seo(track) {
     return seoAeo(track);
+  },
+
+  async listAgentTasks() {
+    const { tasks } = await req<{ tasks: AgentTask[] }>("GET", "/api/agents/tasks");
+    return tasks;
+  },
+  async createAgentTask(input: NewAgentTask) {
+    const { task } = await req<{ task: AgentTask }>("POST", "/api/agents/tasks", input);
+    return task;
+  },
+  async completeAgentTask(id: string) {
+    const { task } = await req<{ task: AgentTask }>("POST", `/api/agents/tasks/${id}/done`);
+    return task;
   },
 
   async listRegistrations() {

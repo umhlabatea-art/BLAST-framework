@@ -33,4 +33,6 @@ export {
   summarize,
   generateTrack,
   generateJob,
+  routeAgent,
+  AGENT_IDS,
 } from "./agents/index.js";
