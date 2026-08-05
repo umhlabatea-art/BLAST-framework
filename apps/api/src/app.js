@@ -24,6 +24,8 @@ import { createSubscriptionsRouter } from "./modules/subscriptions.js";
 import { createRevenueRouter } from "./modules/revenue.js";
 import { createComplianceRouter } from "./modules/compliance.js";
 import { createAgentsRouter } from "./modules/agents.js";
+import { createMarketplaceRouter } from "./modules/marketplace.js";
+import { createAdminRouter } from "./modules/admin.js";
 
 export function createApp({ store = createInMemoryStore() } = {}) {
   const app = express();
@@ -45,6 +47,8 @@ export function createApp({ store = createInMemoryStore() } = {}) {
   app.use("/api", createRevenueRouter(ctx));
   app.use("/api", createComplianceRouter(ctx));
   app.use("/api", createAgentsRouter(ctx));
+  app.use("/api", createMarketplaceRouter(ctx));
+  app.use("/api", createAdminRouter(ctx));
 
   return app;
 }

@@ -1,0 +1,170 @@
+/* Umhlabatea Creator OS — design tokens */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Brand palette */
+  --bone:       #F5F0E8;
+  --bone-dark:  #EDE7D8;
+  --ink:        #1A1A2E;
+  --ink-light:  #2D2D4E;
+  --gold:       #C9A84C;
+  --gold-light: #E8C870;
+  --steel:      #8892A4;
+  --warm-white: #FDFCF9;
+  --midtone:    #4A4A6A;
+  --error:      #C0392B;
+  --success:    #27AE60;
+  --warning:    #E67E22;
+
+  /* Semantic */
+  --bg:              var(--bone);
+  --surface:         var(--warm-white);
+  --surface-alt:     #F0EBE1;
+  --text-primary:    var(--ink);
+  --text-secondary:  var(--midtone);
+  --text-muted:      var(--steel);
+  --accent:          var(--gold);
+  --accent-hover:    var(--gold-light);
+  --border:          rgba(26, 26, 46, 0.10);
+  --border-strong:   rgba(26, 26, 46, 0.20);
+  --ring:            rgba(201, 168, 76, 0.40);
+
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+
+  /* Sidebar */
+  --sidebar-w:  240px;
+  --header-h:   60px;
+
+  /* Spacing scale */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px; --s16: 64px;
+
+  /* Radius */
+  --r-sm: 4px; --r: 8px; --r-lg: 16px; --r-xl: 24px;
+
+  /* Shadows */
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --sh:    0 4px 16px rgba(0,0,0,0.09);
+  --sh-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+
+/* Utility classes */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.display { font-family: var(--font-display); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 10px var(--s5);
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--warm-white);
+}
+.btn-primary:hover { background: var(--ink-light); }
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--ink);
+}
+.btn-gold:hover { background: var(--gold-light); }
+
+.btn-ghost {
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.btn-ghost:hover { background: var(--surface-alt); }
+
+.btn-sm { padding: 7px var(--s4); font-size: 13px; }
+.btn-lg { padding: 13px var(--s8); font-size: 15px; }
+
+.tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.tag-gold { background: rgba(201,168,76,0.15); color: #7A5C00; }
+.tag-green { background: rgba(39,174,96,0.12); color: #1A6B3F; }
+.tag-red { background: rgba(192,57,43,0.12); color: var(--error); }
+
+.input {
+  width: 100%;
+  padding: 10px var(--s4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892A4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--s6) 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }

@@ -6,13 +6,16 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "apps/api"
+    "apps/api",
+    "apps/web"
   ],
   "scripts": {
     "test": "npm run test -w @umhlabatea/core && npm run test -w @umhlabatea/api",
     "dev:api": "npm run dev -w @umhlabatea/api",
     "start:api": "npm run start -w @umhlabatea/api",
-    "dev:mobile": "npm --prefix apps/mobile run start"
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "dev:web": "npm run dev -w @umhlabatea/web",
+    "build:web": "npm run build -w @umhlabatea/web"
   },
   "engines": {
     "node": ">=18"
