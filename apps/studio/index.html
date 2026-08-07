@@ -211,6 +211,13 @@
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .foot { text-align:center; font-size:11px; color:var(--muted); margin-top:24px; font-family: var(--mono); letter-spacing:.05em; }
   @media (min-width:560px){ .display{font-size:32px} }
+
+  /* ── Multitrack Recorder ── */
+  .mt-track { background: var(--console-2); border: 1px solid var(--console-line); border-radius: 14px; padding: 12px; margin-bottom: 6px; }
+  .mt-track.muted-track { opacity: .38; }
+  .mt-canvas { width: 100%; height: 52px; border-radius: 8px; background: var(--console); display: block; margin: 6px 0; }
+  .mt-fxgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mt-fxpill { background: var(--console-2); border: 1px solid var(--console-line); border-radius: 12px; padding: 10px 12px; }
 </style>
 </head>
 <body>
@@ -422,6 +429,36 @@
       <div class="stack" id="tiers"></div>
       <div class="foot">Prices in ZAR · cancel anytime · VAT included</div>
     </section>
+
+    <!-- MULTITRACK -->
+    <section data-zone="multitrack">
+      <div class="eyebrow">Tenacity-inspired</div>
+      <div class="display" style="margin-top:6px"><em>Multi</em>track</div>
+      <p class="muted" style="margin:10px 0 14px">Stack takes, apply studio effects — noise gate, compressor, EQ, reverb, limiter — then mix down to a 16-bit WAV.</p>
+      <div class="console stack">
+        <div class="transport">
+          <div class="row" style="gap:8px">
+            <div class="rec-dot" id="mt-dot"></div>
+            <span class="label" id="mt-label" style="color:#8aa0b5">Ready</span>
+          </div>
+          <div style="font-family:var(--mono); font-size:20px; font-weight:500; color:var(--gold); min-width:56px" id="mt-timer">00:00</div>
+          <div class="grow"></div>
+          <button class="tbtn" id="mt-recBtn" onclick="MultiTrack.toggleRec()" title="Record">⏺</button>
+          <button class="tbtn" onclick="MultiTrack.playAll()" title="Play all">▶</button>
+          <button class="tbtn" onclick="MultiTrack.stopAll()" title="Stop">■</button>
+        </div>
+        <canvas id="mt-liveCanvas" class="mt-canvas" width="560" height="52"></canvas>
+        <div id="mt-tracks" class="stack"></div>
+        <div class="row" style="gap:8px; flex-wrap:wrap; padding-top:4px">
+          <button class="mini" onclick="MultiTrack.mixDown()">⬇ Mix to WAV</button>
+          <button class="mini" onclick="MultiTrack.clearAll()">✕ Clear</button>
+        </div>
+        <div style="border-top:1px solid var(--console-line); margin:10px 0 0; padding-top:10px">
+          <div class="label" style="color:#8aa0b5; margin-bottom:8px">Effects chain</div>
+          <div class="mt-fxgrid" id="mt-fxgrid"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <nav class="tabs" id="tabs"></nav>
@@ -539,6 +576,7 @@ const TABS = [
   { id: "studio", ico: "🎛", label: "Studio" },
   { id: "player", ico: "📻", label: "Player" },
   { id: "voice", ico: "🎙", label: "Record" },
+  { id: "multitrack", ico: "🎚", label: "Tracks" },
   { id: "agents", ico: "🤖", label: "Agents" },
   { id: "rights", ico: "⚖", label: "Rights" },
   { id: "pricing", ico: "◆", label: "Plans" },
@@ -560,8 +598,9 @@ const Hub = {
     if (zone === "rights") Rights.render();
     if (zone === "studio") Studio.render();
     if (zone === "agents") Agents.renderTasks();
+    if (zone === "multitrack") MultiTrack.render();
   },
-  renderAll() { Home.render(); Studio.render(); Player.render(); Agents.render(); Agents.renderTasks(); Rights.render(); Pricing.render(); Recorder.renderNotes(); },
+  renderAll() { Home.render(); Studio.render(); Player.render(); Agents.render(); Agents.renderTasks(); Rights.render(); Pricing.render(); Recorder.renderNotes(); MultiTrack.render(); },
   toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove("show"), 2400); },
   openSettings() {
     document.getElementById("orKey").value = Store.data.settings.openRouterKey || "";
@@ -1048,6 +1087,226 @@ const TIERS = [
 const Pricing = {
   render() {
     document.getElementById("tiers").innerHTML = TIERS.map(t => `<div class="card stack" style="${t.popular ? "border-color:var(--gold-border)" : ""}"><div class="row between"><b style="font-family:var(--display); font-size:16px">${t.name}</b>${t.popular ? `<span class="badge gold">Most popular</span>` : ""}</div><div class="muted" style="font-size:12px">${t.tagline}</div><div class="row" style="align-items:baseline; gap:4px"><span class="display" style="font-size:30px">${t.price === 0 ? "Free" : "R" + t.price}</span>${t.price ? `<span class="muted">/mo</span>` : ""}</div><div class="divider" style="margin:6px 0"></div>${t.features.map(f => `<div class="row" style="gap:8px"><span style="color:var(--gold)">✓</span><span>${f}</span></div>`).join("")}<button class="btn ${t.popular ? "gold" : "ghost"}" onclick="Hub.toast('${t.name}: secure checkout opens in live mode (Stripe / PayFast).')">${t.cta}</button></div>`).join("");
+  },
+};
+
+/* ---------------- MultiTrack Recorder (Tenacity-inspired) ---------------- */
+const MultiTrack = {
+  ctx: null, tracks: [], playing: [],
+  rec: null, chunks: [], stream: null, animReq: null, t0: null, timerInt: null,
+  fx: {
+    gate:    { on: false, threshold: -40 },
+    comp:    { on: true,  threshold: -18, ratio: 4 },
+    bass:    { on: false, gain: 4 },
+    treble:  { on: false, gain: 3 },
+    noiseRed:{ on: false, freq: 120 },
+    reverb:  { on: false, amt: 0.28 },
+    limiter: { on: false },
+    norm:    { on: false },
+  },
+
+  ensureCtx() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+  },
+
+  // Build Tenacity-style FX chain on any AudioContext (live or offline)
+  _chain(ac, inputNode, destNode) {
+    const f = this.fx; let cur = inputNode;
+    // Noise Gate: extreme-ratio compressor to gate near-silence
+    if (f.gate.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = f.gate.threshold; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.001; g.release.value = 0.05; cur.connect(g); cur = g; }
+    // Compressor
+    if (f.comp.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = f.comp.threshold; g.ratio.value = f.comp.ratio; g.knee.value = 6; g.attack.value = 0.003; g.release.value = 0.25; cur.connect(g); cur = g; }
+    // Bass boost (lowshelf)
+    if (f.bass.on) { const b = ac.createBiquadFilter(); b.type = "lowshelf"; b.frequency.value = 120; b.gain.value = f.bass.gain; cur.connect(b); cur = b; }
+    // Treble boost (highshelf)
+    if (f.treble.on) { const b = ac.createBiquadFilter(); b.type = "highshelf"; b.frequency.value = 6000; b.gain.value = f.treble.gain; cur.connect(b); cur = b; }
+    // Noise Reduction: highpass to cut mic rumble below cutoff
+    if (f.noiseRed.on) { const b = ac.createBiquadFilter(); b.type = "highpass"; b.frequency.value = f.noiseRed.freq; b.Q.value = 0.7; cur.connect(b); cur = b; }
+    // Reverb: convolution with exponential-decay impulse
+    if (f.reverb.on) {
+      const conv = ac.createConvolver(); conv.buffer = Studio.impulse(ac, 1.5);
+      const dry = ac.createGain(); dry.gain.value = 1 - f.reverb.amt;
+      const wet = ac.createGain(); wet.gain.value = f.reverb.amt;
+      const mix = ac.createGain();
+      cur.connect(dry); dry.connect(mix);
+      cur.connect(conv); conv.connect(wet); wet.connect(mix);
+      cur = mix;
+    }
+    // Limiter: DynamicsCompressor at near-unity threshold with maximum ratio
+    if (f.limiter.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = -1; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.001; g.release.value = 0.05; cur.connect(g); cur = g; }
+    cur.connect(destNode);
+  },
+
+  fmtTime(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); },
+
+  async toggleRec() {
+    if (this.rec && this.rec.state === "recording") { this.stopRec(); return; }
+    try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { Hub.toast("Mic access required to record"); return; }
+    this.ensureCtx();
+    this.chunks = [];
+    try { this.rec = new MediaRecorder(this.stream); } catch (e) { this.stream.getTracks().forEach(t => t.stop()); Hub.toast("Recording not supported here"); return; }
+    this.rec.ondataavailable = ev => { if (ev.data.size) this.chunks.push(ev.data); };
+    this.rec.onstop = () => this._finishRec();
+    this.rec.start(200);
+    this.t0 = Date.now();
+    this.timerInt = setInterval(() => { const el = document.getElementById("mt-timer"); if (el) el.textContent = this.fmtTime(Date.now() - this.t0); }, 500);
+    this._startLiveWave();
+    const dot = document.getElementById("mt-dot"); if (dot) dot.classList.add("live");
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Recording…";
+    const btn = document.getElementById("mt-recBtn"); if (btn) { btn.style.color = "var(--danger)"; btn.title = "Stop"; }
+  },
+
+  stopRec() {
+    if (this.rec && this.rec.state !== "inactive") this.rec.stop();
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    clearInterval(this.timerInt); cancelAnimationFrame(this.animReq);
+    const dot = document.getElementById("mt-dot"); if (dot) dot.classList.remove("live");
+    const btn = document.getElementById("mt-recBtn"); if (btn) { btn.style.color = ""; btn.title = "Record"; }
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Processing…";
+  },
+
+  async _finishRec() {
+    if (!this.chunks.length) { const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Ready"; return; }
+    const mimeType = this.chunks[0].type || "audio/webm";
+    const blob = new Blob(this.chunks, { type: mimeType });
+    const id = uid("mt"), name = "Take " + (this.tracks.length + 1);
+    const dur = this.fmtTime(this.t0 ? Date.now() - this.t0 : 0);
+    let buf = null;
+    try { const ab = await blob.arrayBuffer(); buf = await this.ctx.decodeAudioData(ab); } catch (e) {}
+    this.tracks.push({ id, name, blob, buf, muted: false, solo: false, vol: 1 });
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Ready";
+    const tmr = document.getElementById("mt-timer"); if (tmr) tmr.textContent = dur;
+    this.render(); Hub.toast(name + " recorded");
+  },
+
+  _startLiveWave() {
+    const canvas = document.getElementById("mt-liveCanvas");
+    if (!canvas || !this.stream) return;
+    const src = this.ctx.createMediaStreamSource(this.stream);
+    const an = this.ctx.createAnalyser(); an.fftSize = 512;
+    src.connect(an);
+    const data = new Uint8Array(an.frequencyBinCount);
+    const W = canvas.width, H = canvas.height;
+    const draw = () => {
+      this.animReq = requestAnimationFrame(draw);
+      an.getByteTimeDomainData(data);
+      const cx = canvas.getContext("2d"); cx.clearRect(0, 0, W, H);
+      cx.beginPath(); cx.lineWidth = 1.5; cx.strokeStyle = "#C9A84C";
+      const sw = W / data.length;
+      data.forEach((v, i) => { const y = (v / 128) * H / 2; i === 0 ? cx.moveTo(0, y) : cx.lineTo(i * sw, y); });
+      cx.lineTo(W, H / 2); cx.stroke();
+    };
+    draw();
+  },
+
+  _drawWave(canvas, buf) {
+    if (!canvas || !buf) return;
+    const ch = buf.getChannelData(0), W = canvas.width, H = canvas.height;
+    const cx = canvas.getContext("2d"); cx.clearRect(0, 0, W, H);
+    cx.beginPath(); cx.lineWidth = 1; cx.strokeStyle = "#6C8CAE";
+    const step = Math.ceil(ch.length / W);
+    for (let x = 0; x < W; x++) {
+      let mn = 1, mx = -1;
+      for (let j = x * step; j < (x + 1) * step && j < ch.length; j++) { if (ch[j] < mn) mn = ch[j]; if (ch[j] > mx) mx = ch[j]; }
+      if (mx <= mn) mx = mn + 0.01;
+      cx.moveTo(x, ((1 + mn) / 2) * H); cx.lineTo(x, ((1 + mx) / 2) * H);
+    }
+    cx.stroke();
+  },
+
+  render() {
+    const el = document.getElementById("mt-tracks");
+    if (!el) return;
+    el.innerHTML = !this.tracks.length
+      ? `<p style="font-family:var(--mono); font-size:11px; color:#9fb2c4; padding:4px 0">No takes yet — hit ⏺ to start recording.</p>`
+      : this.tracks.map((t, i) => `
+        <div class="mt-track${t.muted ? " muted-track" : ""}">
+          <div class="row between">
+            <span style="font-family:var(--mono); font-size:12px; font-weight:500; color:#e9eef3">${Hub.esc(t.name)}</span>
+            <div class="row" style="gap:5px">
+              <button class="mini${t.muted ? " on" : ""}" onclick="MultiTrack.toggleMute(${i})" title="Mute">M</button>
+              <button class="mini${t.solo ? " on" : ""}" onclick="MultiTrack.toggleSolo(${i})" title="Solo">S</button>
+              <button class="mini" onclick="MultiTrack.deleteTrack(${i})" title="Delete">✕</button>
+            </div>
+          </div>
+          <canvas class="mt-canvas" id="mt-w-${t.id}" width="560" height="52"></canvas>
+          <div class="row" style="gap:8px; align-items:center">
+            <span style="font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:#8aa0b5; min-width:22px">Vol</span>
+            <input type="range" min="0" max="100" value="${Math.round(t.vol * 100)}" style="flex:1; accent-color:var(--gold)" oninput="MultiTrack.setVol(${i},this.value)">
+          </div>
+        </div>`).join("");
+    requestAnimationFrame(() => this.tracks.forEach(t => this._drawWave(document.getElementById("mt-w-" + t.id), t.buf)));
+
+    const fxEl = document.getElementById("mt-fxgrid");
+    if (!fxEl) return;
+    const defs = [
+      { id: "gate",    label: "Noise Gate",  sl: "threshold", min: -80, max: -20, val: this.fx.gate.threshold,               sfx: "dB" },
+      { id: "comp",    label: "Compressor",  sl: "ratio",     min: 1,   max: 20,  val: this.fx.comp.ratio,                   sfx: ":1" },
+      { id: "bass",    label: "Bass Boost",  sl: "gain",      min: -12, max: 18,  val: this.fx.bass.gain,                    sfx: "dB" },
+      { id: "treble",  label: "Treble",      sl: "gain",      min: -12, max: 18,  val: this.fx.treble.gain,                  sfx: "dB" },
+      { id: "noiseRed",label: "Noise Reduce",sl: "freq",      min: 40,  max: 800, val: this.fx.noiseRed.freq,                sfx: "Hz" },
+      { id: "reverb",  label: "Reverb",      sl: "amt",       min: 0,   max: 100, val: Math.round(this.fx.reverb.amt * 100), sfx: "%" },
+      { id: "limiter", label: "Limiter",     sl: null, hint: "−1 dBFS ceiling" },
+      { id: "norm",    label: "Normalize",   sl: null, hint: "Peak to −0.5 dBFS" },
+    ];
+    fxEl.innerHTML = defs.map(d => `<div class="mt-fxpill">
+      <div class="row between"><button class="mini${this.fx[d.id].on ? " on" : ""}" onclick="MultiTrack.toggleFx('${d.id}')">${d.label}</button>${d.sl ? `<span style="font-family:var(--mono); font-size:9px; color:#8aa0b5">${d.sfx}</span>` : ""}</div>
+      ${d.sl ? `<input type="range" min="${d.min}" max="${d.max}" value="${d.val}" style="width:100%; accent-color:var(--gold); margin-top:6px" oninput="MultiTrack.setFxVal('${d.id}','${d.sl}',this.value)">` : `<div style="font-size:10px; color:#8aa0b5; margin-top:5px; font-family:var(--mono)">${d.hint}</div>`}
+    </div>`).join("");
+  },
+
+  toggleMute(i) { const t = this.tracks[i]; if (t) { t.muted = !t.muted; this.render(); } },
+  toggleSolo(i) { const t = this.tracks[i]; if (t) { t.solo = !t.solo; this.render(); } },
+  setVol(i, v) { const t = this.tracks[i]; if (t) t.vol = +v / 100; },
+  deleteTrack(i) { this.tracks.splice(i, 1); this.render(); Hub.toast("Take deleted"); },
+  clearAll() { this.tracks = []; this.render(); Hub.toast("All takes cleared"); },
+  toggleFx(id) { if (this.fx[id]) { this.fx[id].on = !this.fx[id].on; this.render(); Hub.toast(id + (this.fx[id].on ? " on" : " off")); } },
+  setFxVal(id, key, raw) { if (this.fx[id]) this.fx[id][key] = (id === "reverb" && key === "amt") ? +raw / 100 : +raw; },
+
+  async playAll() {
+    this.ensureCtx(); this.stopAll();
+    const soloAny = this.tracks.some(t => t.solo);
+    for (const t of this.tracks) {
+      if (!t.buf || t.muted || (soloAny && !t.solo)) continue;
+      const src = this.ctx.createBufferSource(); src.buffer = t.buf;
+      const g = this.ctx.createGain(); g.gain.value = t.vol;
+      src.connect(g); this._chain(this.ctx, g, this.ctx.destination); src.start();
+      this.playing.push(src);
+    }
+    if (!this.playing.length) Hub.toast("No decoded takes to play — unmute or record some");
+  },
+
+  stopAll() { this.playing.forEach(s => { try { s.stop(); } catch (e) {} }); this.playing = []; },
+
+  async mixDown() {
+    const ready = this.tracks.filter(t => t.buf && !t.muted);
+    if (!ready.length) { Hub.toast("No decoded takes to mix — unmute or record some"); return; }
+    Hub.toast("Rendering mix…");
+    const rate = ready[0].buf.sampleRate;
+    const maxLen = Math.max(...ready.map(t => t.buf.length));
+    const off = new OfflineAudioContext(2, maxLen, rate);
+    const soloAny = this.tracks.some(t => t.solo);
+    for (const t of ready) {
+      if (soloAny && !t.solo) continue;
+      const src = off.createBufferSource(); src.buffer = t.buf;
+      const g = off.createGain();
+      if (this.fx.norm.on) {
+        const ch = t.buf.getChannelData(0); let pk = 0;
+        for (let i = 0; i < ch.length; i++) { const a = Math.abs(ch[i]); if (a > pk) pk = a; }
+        g.gain.value = pk > 0.001 ? (0.95 * t.vol) / pk : t.vol;
+      } else g.gain.value = t.vol;
+      src.connect(g); this._chain(off, g, off.destination); src.start(0);
+    }
+    try {
+      const rendered = await off.startRendering();
+      const wav = Studio.encodeWav(rendered);
+      const blob = new Blob([wav], { type: "audio/wav" }); const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "umhlabatea-mix.wav";
+      document.body.appendChild(a); a.click(); a.remove();
+      Hub.toast("Mix downloaded ✓");
+    } catch (e) { Hub.toast("Mix failed: " + (e.message || e)); }
   },
 };
 
