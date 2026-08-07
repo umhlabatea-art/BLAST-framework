@@ -212,6 +212,19 @@
   .foot { text-align:center; font-size:11px; color:var(--muted); margin-top:24px; font-family: var(--mono); letter-spacing:.05em; }
   @media (min-width:560px){ .display{font-size:32px} }
 
+  /* ── Live Collab (OpenScreen-inspired) ── */
+  .collab-preview { position: relative; background: #000; border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; width: 100%; }
+  .collab-screen { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .collab-webcam { position: absolute; bottom: 12px; right: 12px; width: 22%; border-radius: 10px; border: 2px solid rgba(201,168,76,.4); object-fit: cover; aspect-ratio: 4/3; }
+  .collab-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  .collab-toolbar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .col-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: .15s; flex-shrink: 0; }
+  .col-swatch.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,.3); }
+  .col-chat-msg { padding: 5px 0; border-bottom: 1px dashed var(--console-line); font-size: 12px; }
+  .col-chat-msg .who { font-family: var(--mono); font-size: 10px; color: var(--gold); margin-bottom: 2px; }
+  .peer-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--console-2); border: 1px solid var(--console-line); border-radius: 100px; padding: 3px 9px; font-family: var(--mono); font-size: 10px; color: #9fb2c4; }
+  .peer-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+
   /* ── Multitrack Recorder ── */
   .mt-track { background: var(--console-2); border: 1px solid var(--console-line); border-radius: 14px; padding: 12px; margin-bottom: 6px; }
   .mt-track.muted-track { opacity: .38; }
@@ -430,6 +443,75 @@
       <div class="foot">Prices in ZAR · cancel anytime · VAT included</div>
     </section>
 
+    <!-- COLLAB -->
+    <section data-zone="collab">
+      <div class="eyebrow">OpenScreen-inspired</div>
+      <div class="display" style="margin-top:6px">Live <em>Collab</em></div>
+      <p class="muted" style="margin:10px 0 14px">Share your screen, annotate together, record the session, and chat — all in the browser. Same-device rooms use BroadcastChannel; replace with WebRTC/Supabase Realtime for cross-device.</p>
+
+      <div class="console stack">
+        <!-- Room -->
+        <div class="row" style="gap:8px; flex-wrap:wrap; align-items:flex-end">
+          <div style="flex:1; min-width:140px">
+            <div class="label" style="color:#8aa0b5; margin-bottom:5px">Room code</div>
+            <input id="col-room" type="text" placeholder="e.g. jozi-session-01" style="background:var(--console-2); border:1px solid var(--console-line); color:#e9eef3; border-radius:10px; padding:9px 11px; font-family:var(--mono); font-size:12px; width:100%">
+          </div>
+          <div style="display:flex; gap:6px; padding-bottom:1px">
+            <button class="mini" onclick="Collab.createRoom()">Create</button>
+            <button class="mini" onclick="Collab.joinRoom()">Join</button>
+            <button class="mini" id="col-leaveBtn" style="display:none" onclick="Collab.leaveRoom()">Leave</button>
+          </div>
+        </div>
+        <!-- Peers -->
+        <div class="row" style="gap:6px; flex-wrap:wrap; min-height:20px" id="col-peers">
+          <span style="font-family:var(--mono); font-size:11px; color:#4a6076">Not in a room.</span>
+        </div>
+
+        <!-- Screen preview + webcam pip + annotation canvas -->
+        <div class="collab-preview" id="col-preview">
+          <video id="col-screen" class="collab-screen" autoplay muted playsinline></video>
+          <video id="col-webcam" class="collab-webcam" autoplay muted playsinline style="display:none"></video>
+          <canvas id="col-canvas" class="collab-canvas" style="display:none; cursor:crosshair"></canvas>
+          <div id="col-idle" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#4a6076;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Screen capture inactive</div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="collab-toolbar">
+          <button class="mini" id="col-screenBtn" onclick="Collab.toggleScreen()">⊞ Screen</button>
+          <button class="mini" id="col-camBtn" onclick="Collab.toggleWebcam()">◉ Webcam</button>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <button class="mini" id="col-penBtn" onclick="Collab.setTool('pen')">✏ Pen</button>
+          <button class="mini" id="col-hlBtn" onclick="Collab.setTool('highlight')">◈ Highlight</button>
+          <button class="mini" id="col-arrowBtn" onclick="Collab.setTool('arrow')">↗ Arrow</button>
+          <button class="mini" id="col-eraseBtn" onclick="Collab.setTool('erase')">⌫ Erase</button>
+          <button class="mini" onclick="Collab.clearCanvas()">✕ Clear</button>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <div class="col-swatch active" style="background:#C9A84C" onclick="Collab.setColor('#C9A84C',this)"></div>
+          <div class="col-swatch" style="background:#6C8CAE" onclick="Collab.setColor('#6C8CAE',this)"></div>
+          <div class="col-swatch" style="background:#27ae60" onclick="Collab.setColor('#27ae60',this)"></div>
+          <div class="col-swatch" style="background:#e74c3c" onclick="Collab.setColor('#e74c3c',this)"></div>
+          <div class="col-swatch" style="background:#e9eef3;border:1px solid var(--console-line)" onclick="Collab.setColor('#e9eef3',this)"></div>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <button class="mini" id="col-recBtn" onclick="Collab.toggleRecord()">⏺ Record</button>
+        </div>
+
+        <!-- Chat -->
+        <div style="border-top:1px solid var(--console-line);padding-top:10px">
+          <div class="label" style="color:#8aa0b5; margin-bottom:7px">Session chat</div>
+          <div id="col-chat" style="max-height:150px; overflow-y:auto; margin-bottom:8px">
+            <p style="font-family:var(--mono);font-size:11px;color:#4a6076">Join a room to chat.</p>
+          </div>
+          <div class="row" style="gap:8px">
+            <input id="col-msg" type="text" placeholder="Message…" style="flex:1;background:var(--console-2);border:1px solid var(--console-line);color:#e9eef3;border-radius:10px;padding:8px 10px;font-size:12px" onkeydown="if(event.key==='Enter')Collab.sendChat()">
+            <button class="mini" onclick="Collab.sendChat()">Send</button>
+          </div>
+        </div>
+
+        <!-- Recording output -->
+        <video id="col-recOut" controls style="width:100%;display:none;margin-top:6px;border-radius:10px"></video>
+      </div>
+    </section>
+
     <!-- MULTITRACK -->
     <section data-zone="multitrack">
       <div class="eyebrow">Tenacity-inspired</div>
@@ -577,6 +659,7 @@ const TABS = [
   { id: "player", ico: "📻", label: "Player" },
   { id: "voice", ico: "🎙", label: "Record" },
   { id: "multitrack", ico: "🎚", label: "Tracks" },
+  { id: "collab", ico: "🖥", label: "Collab" },
   { id: "agents", ico: "🤖", label: "Agents" },
   { id: "rights", ico: "⚖", label: "Rights" },
   { id: "pricing", ico: "◆", label: "Plans" },
@@ -599,8 +682,9 @@ const Hub = {
     if (zone === "studio") Studio.render();
     if (zone === "agents") Agents.renderTasks();
     if (zone === "multitrack") MultiTrack.render();
+    if (zone === "collab") Collab.render();
   },
-  renderAll() { Home.render(); Studio.render(); Player.render(); Agents.render(); Agents.renderTasks(); Rights.render(); Pricing.render(); Recorder.renderNotes(); MultiTrack.render(); },
+  renderAll() { Home.render(); Studio.render(); Player.render(); Agents.render(); Agents.renderTasks(); Rights.render(); Pricing.render(); Recorder.renderNotes(); MultiTrack.render(); Collab.render(); },
   toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove("show"), 2400); },
   openSettings() {
     document.getElementById("orKey").value = Store.data.settings.openRouterKey || "";
@@ -1087,6 +1171,300 @@ const TIERS = [
 const Pricing = {
   render() {
     document.getElementById("tiers").innerHTML = TIERS.map(t => `<div class="card stack" style="${t.popular ? "border-color:var(--gold-border)" : ""}"><div class="row between"><b style="font-family:var(--display); font-size:16px">${t.name}</b>${t.popular ? `<span class="badge gold">Most popular</span>` : ""}</div><div class="muted" style="font-size:12px">${t.tagline}</div><div class="row" style="align-items:baseline; gap:4px"><span class="display" style="font-size:30px">${t.price === 0 ? "Free" : "R" + t.price}</span>${t.price ? `<span class="muted">/mo</span>` : ""}</div><div class="divider" style="margin:6px 0"></div>${t.features.map(f => `<div class="row" style="gap:8px"><span style="color:var(--gold)">✓</span><span>${f}</span></div>`).join("")}<button class="btn ${t.popular ? "gold" : "ghost"}" onclick="Hub.toast('${t.name}: secure checkout opens in live mode (Stripe / PayFast).')">${t.cta}</button></div>`).join("");
+  },
+};
+
+/* ---------------- Live Collab (OpenScreen-inspired) ---------------- */
+const Collab = {
+  channel: null, roomId: null,
+  peerId: uid("peer"), peerName: null,
+  peers: {}, heartbeatTimer: null, pruneTimer: null,
+  screenStream: null, webcamStream: null,
+  rec: null, recChunks: [], _compositing: false,
+  tool: "pen", color: "#C9A84C", lw: 3,
+  _canvasReady: false,
+
+  get name() { return this.peerName || ("Artist·" + this.peerId.slice(-4)); },
+
+  render() {
+    if (!this._canvasReady) { this._setupCanvas(); this._canvasReady = true; }
+    this._resizeCanvas();
+  },
+
+  // ── Room management ──
+  createRoom() {
+    const code = (document.getElementById("col-room").value || "").trim() || ("room-" + Math.random().toString(36).slice(2, 7));
+    document.getElementById("col-room").value = code;
+    this._connect(code);
+    Hub.toast('Room "' + code + '" created — share the code with collaborators');
+  },
+
+  joinRoom() {
+    const code = (document.getElementById("col-room").value || "").trim();
+    if (!code) { Hub.toast("Enter a room code first"); return; }
+    this._connect(code); Hub.toast('Joined "' + code + '"');
+  },
+
+  leaveRoom() {
+    if (this.channel) { this._broadcast({ type: "leave", id: this.peerId }); this.channel.close(); this.channel = null; }
+    clearInterval(this.heartbeatTimer); clearInterval(this.pruneTimer);
+    this.peers = {}; this.roomId = null;
+    document.getElementById("col-leaveBtn").style.display = "none";
+    this._renderPeers(); Hub.toast("Left room");
+  },
+
+  _connect(code) {
+    if (this.channel) { this._broadcast({ type: "leave", id: this.peerId }); this.channel.close(); }
+    clearInterval(this.heartbeatTimer); clearInterval(this.pruneTimer);
+    this.roomId = code;
+    try { this.channel = new BroadcastChannel("umhlabatea.collab." + code); }
+    catch (e) { Hub.toast("BroadcastChannel not supported here"); return; }
+    this.channel.onmessage = ev => this._onMsg(ev.data);
+    this.peers = {}; this.peers[this.peerId] = { name: this.name, ts: Date.now() };
+    this._broadcast({ type: "join", id: this.peerId, name: this.name });
+    this.heartbeatTimer = setInterval(() => this._broadcast({ type: "hb", id: this.peerId, name: this.name }), 5000);
+    this.pruneTimer = setInterval(() => this._prunePeers(), 13000);
+    document.getElementById("col-leaveBtn").style.display = "";
+    this._renderPeers();
+    this._appendChat({ who: "System", text: '"' + code + '"', sys: true });
+  },
+
+  _broadcast(msg) { if (this.channel) try { this.channel.postMessage(msg); } catch (e) {} },
+
+  _onMsg(msg) {
+    const { type, id, name } = msg;
+    if (id === this.peerId) return;
+    if (type === "join" || type === "hb") {
+      const isNew = !this.peers[id];
+      this.peers[id] = { name: name || id, ts: Date.now() };
+      if (type === "join") {
+        this._appendChat({ who: "System", text: (name || id) + " joined", sys: true });
+        this._broadcast({ type: "hb", id: this.peerId, name: this.name });
+      }
+      this._renderPeers();
+    } else if (type === "leave") {
+      const who = (this.peers[id] || {}).name || id;
+      delete this.peers[id]; this._renderPeers();
+      this._appendChat({ who: "System", text: who + " left", sys: true });
+    } else if (type === "chat") {
+      this._appendChat({ who: msg.name || id, text: msg.text });
+    } else if (type === "stroke") {
+      this._paintStroke(msg.pts, msg.color, msg.tool, msg.lw);
+    } else if (type === "arrow") {
+      this._paintArrow(msg.x1, msg.y1, msg.x2, msg.y2, msg.color, msg.lw);
+    } else if (type === "clear") {
+      const cv = document.getElementById("col-canvas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    }
+  },
+
+  _prunePeers() {
+    const now = Date.now();
+    for (const [id, p] of Object.entries(this.peers)) {
+      if (id !== this.peerId && now - p.ts > 14000) delete this.peers[id];
+    }
+    this._renderPeers();
+  },
+
+  _renderPeers() {
+    const el = document.getElementById("col-peers"); if (!el) return;
+    const ids = Object.keys(this.peers);
+    el.innerHTML = !this.roomId
+      ? `<span style="font-family:var(--mono);font-size:11px;color:#4a6076">Not in a room.</span>`
+      : ids.map(id => `<span class="peer-pill">${Hub.esc(this.peers[id].name)}</span>`).join(" ") +
+        ` <span style="font-family:var(--mono);font-size:10px;color:#4a6076;margin-left:4px">· ${Hub.esc(this.roomId)}</span>`;
+  },
+
+  _appendChat({ who, text, sys = false }) {
+    const el = document.getElementById("col-chat"); if (!el) return;
+    const ph = el.querySelector("p"); if (ph) ph.remove();
+    const d = document.createElement("div"); d.className = "col-chat-msg";
+    d.innerHTML = `<div class="who">${Hub.esc(who)}</div><div style="color:${sys ? "#4a6076" : "#e9eef3"}">${Hub.esc(text)}</div>`;
+    el.appendChild(d); el.scrollTop = el.scrollHeight;
+  },
+
+  sendChat() {
+    if (!this.roomId) { Hub.toast("Join a room first"); return; }
+    const inp = document.getElementById("col-msg"); if (!inp) return;
+    const text = inp.value.trim(); if (!text) return; inp.value = "";
+    this._appendChat({ who: this.name, text });
+    this._broadcast({ type: "chat", id: this.peerId, name: this.name, text });
+  },
+
+  // ── Screen capture (OpenScreen: getDisplayMedia) ──
+  async toggleScreen() {
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(t => t.stop()); this.screenStream = null;
+      document.getElementById("col-screen").srcObject = null;
+      document.getElementById("col-idle").style.display = "flex";
+      document.getElementById("col-canvas").style.display = "none";
+      document.getElementById("col-screenBtn").classList.remove("on");
+      return;
+    }
+    try {
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      document.getElementById("col-screen").srcObject = this.screenStream;
+      document.getElementById("col-idle").style.display = "none";
+      document.getElementById("col-canvas").style.display = "block";
+      document.getElementById("col-screenBtn").classList.add("on");
+      this._resizeCanvas();
+      this.screenStream.getVideoTracks()[0].addEventListener("ended", () => this.toggleScreen());
+    } catch (e) { Hub.toast("Screen share cancelled"); }
+  },
+
+  // ── Webcam pip (OpenScreen: webcam overlay) ──
+  async toggleWebcam() {
+    const vid = document.getElementById("col-webcam");
+    if (this.webcamStream) {
+      this.webcamStream.getTracks().forEach(t => t.stop()); this.webcamStream = null;
+      vid.srcObject = null; vid.style.display = "none";
+      document.getElementById("col-camBtn").classList.remove("on"); return;
+    }
+    try {
+      this.webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      vid.srcObject = this.webcamStream; vid.style.display = "block";
+      document.getElementById("col-camBtn").classList.add("on");
+    } catch (e) { Hub.toast("Webcam access denied"); }
+  },
+
+  // ── Canvas annotation (OpenScreen: AnnotationOverlay) ──
+  _resizeCanvas() {
+    const preview = document.getElementById("col-preview"), cv = document.getElementById("col-canvas");
+    if (!cv || !preview) return;
+    cv.width = preview.offsetWidth || 600; cv.height = preview.offsetHeight || 337;
+  },
+
+  setTool(t) {
+    this.tool = t;
+    ["pen", "hl", "arrow", "erase"].forEach(id => {
+      const b = document.getElementById("col-" + id + "Btn"); if (b) b.classList.remove("on");
+    });
+    const map = { pen: "col-penBtn", highlight: "col-hlBtn", arrow: "col-arrowBtn", erase: "col-eraseBtn" };
+    const btn = document.getElementById(map[t]); if (btn) btn.classList.add("on");
+    const cv = document.getElementById("col-canvas");
+    if (cv) cv.style.cursor = t === "erase" ? "cell" : "crosshair";
+  },
+
+  setColor(c, el) {
+    this.color = c;
+    document.querySelectorAll(".col-swatch").forEach(s => s.classList.remove("active"));
+    if (el) el.classList.add("active");
+  },
+
+  clearCanvas() {
+    const cv = document.getElementById("col-canvas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    this._broadcast({ type: "clear", id: this.peerId });
+  },
+
+  _paintStroke(pts, color, tool, lw) {
+    const cv = document.getElementById("col-canvas"); if (!cv || !pts || pts.length < 2) return;
+    const ctx = cv.getContext("2d"); ctx.save();
+    if (tool === "erase") { ctx.globalCompositeOperation = "destination-out"; ctx.lineWidth = lw * 5; ctx.strokeStyle = "rgba(0,0,0,1)"; }
+    else if (tool === "highlight") { ctx.globalAlpha = 0.32; ctx.lineWidth = lw * 8; ctx.strokeStyle = color; }
+    else { ctx.lineWidth = lw; ctx.strokeStyle = color; }
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke(); ctx.restore();
+  },
+
+  _paintArrow(x1, y1, x2, y2, color, lw) {
+    const cv = document.getElementById("col-canvas"); if (!cv) return;
+    const ctx = cv.getContext("2d"); ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const angle = Math.atan2(y2 - y1, x2 - x1), len = 14;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - len * Math.cos(angle - Math.PI / 6), y2 - len * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(x2 - len * Math.cos(angle + Math.PI / 6), y2 - len * Math.sin(angle + Math.PI / 6));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  },
+
+  _setupCanvas() {
+    const cv = document.getElementById("col-canvas"); if (!cv) return;
+    let pts = [], down = false, arrowStart = null;
+    const pos = ev => {
+      const r = cv.getBoundingClientRect(), src = ev.touches ? ev.touches[0] : ev;
+      return [src.clientX - r.left, src.clientY - r.top];
+    };
+    const onDown = ev => {
+      if (ev.button !== undefined && ev.button !== 0) return;
+      ev.preventDefault(); down = true;
+      const p = pos(ev);
+      if (this.tool === "arrow") { arrowStart = p; }
+      else { pts = [p]; }
+    };
+    const onMove = ev => {
+      if (!down) return; ev.preventDefault();
+      const p = pos(ev);
+      if (this.tool === "arrow") {
+        if (!arrowStart) return;
+        this._resizeCanvas(); // redraw everything (only clearing arrow preview — simpler: just paint over)
+        this._paintArrow(arrowStart[0], arrowStart[1], p[0], p[1], this.color, this.lw);
+      } else {
+        pts.push(p);
+        this._paintStroke(pts.slice(-2), this.color, this.tool, this.lw);
+      }
+    };
+    const onUp = ev => {
+      if (!down) return; down = false;
+      if (this.tool === "arrow" && arrowStart) {
+        const p = pos(ev);
+        this._paintArrow(arrowStart[0], arrowStart[1], p[0], p[1], this.color, this.lw);
+        this._broadcast({ type: "arrow", x1: arrowStart[0], y1: arrowStart[1], x2: p[0], y2: p[1], color: this.color, lw: this.lw, id: this.peerId });
+        arrowStart = null;
+      } else if (pts.length > 1) {
+        this._broadcast({ type: "stroke", pts, color: this.color, tool: this.tool, lw: this.lw, id: this.peerId });
+      }
+      pts = [];
+    };
+    cv.addEventListener("mousedown", onDown); cv.addEventListener("mousemove", onMove);
+    cv.addEventListener("mouseup", onUp); cv.addEventListener("mouseleave", onUp);
+    cv.addEventListener("touchstart", onDown, { passive: false });
+    cv.addEventListener("touchmove", onMove, { passive: false });
+    cv.addEventListener("touchend", onUp);
+    // Activate pen tool by default
+    this.setTool("pen");
+  },
+
+  // ── Session recording (OpenScreen: composite + export) ──
+  toggleRecord() {
+    if (this.rec && this.rec.state === "recording") { this.rec.stop(); return; }
+    if (!this.screenStream) { Hub.toast("Share your screen first to record"); return; }
+    const cv = document.getElementById("col-canvas");
+    const screenVid = document.getElementById("col-screen");
+    const W = (cv && cv.width) || 800, H = (cv && cv.height) || 450;
+    // Composite: screen video + annotation canvas → offscreen canvas stream
+    const off = Object.assign(document.createElement("canvas"), { width: W, height: H });
+    const offCtx = off.getContext("2d");
+    this._compositing = true;
+    const paint = () => {
+      if (!this._compositing) return;
+      offCtx.clearRect(0, 0, W, H);
+      if (screenVid.readyState >= 2) offCtx.drawImage(screenVid, 0, 0, W, H);
+      if (cv) offCtx.drawImage(cv, 0, 0, W, H);
+      requestAnimationFrame(paint);
+    };
+    paint();
+    const tracks = [off.captureStream(30).getVideoTracks()[0]];
+    const audioTracks = this.screenStream.getAudioTracks();
+    if (audioTracks.length) tracks.push(audioTracks[0]);
+    this.recChunks = [];
+    try { this.rec = new MediaRecorder(new MediaStream(tracks)); } catch (e) { this._compositing = false; Hub.toast("Recording not supported"); return; }
+    this.rec.ondataavailable = ev => { if (ev.data.size) this.recChunks.push(ev.data); };
+    this.rec.onstop = () => {
+      this._compositing = false;
+      const blob = new Blob(this.recChunks, { type: this.recChunks[0]?.type || "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const out = document.getElementById("col-recOut"); out.src = url; out.style.display = "block";
+      const a = document.createElement("a"); a.href = url; a.download = "umhlabatea-collab-" + Date.now() + ".webm";
+      document.body.appendChild(a); a.click(); a.remove();
+      document.getElementById("col-recBtn").classList.remove("on");
+      Hub.toast("Session recorded ✓ — downloading");
+    };
+    this.rec.start(200);
+    document.getElementById("col-recBtn").classList.add("on");
+    Hub.toast("Recording…");
   },
 };
 
