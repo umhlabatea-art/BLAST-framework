@@ -82,8 +82,8 @@ const sampleTrack = trackWithArtist(TRACKS[3]); // African Sunrise (Amapiano)
 
 // --- Music generation determinism ---
 {
-  const a = generate("deep amapiano log drum groove", { genre: "amapiano" });
-  const b = generate("deep amapiano log drum groove", { genre: "amapiano" });
+  const a = await generate("deep amapiano log drum groove", { genre: "amapiano" });
+  const b = await generate("deep amapiano log drum groove", { genre: "amapiano" });
   assert.equal(a.id, b.id, "same prompt+params → same id");
   assert.equal(a.title, b.title, "deterministic title");
   assert.equal(a.durationSec, b.durationSec, "deterministic duration");
@@ -91,11 +91,11 @@ const sampleTrack = trackWithArtist(TRACKS[3]); // African Sunrise (Amapiano)
   assert.ok(a.bpm >= 113 && a.bpm <= 120, "amapiano bpm in range");
   assert.ok(a.audioUrl && a.audioUrl.startsWith("data:audio"), "playable audio url");
 
-  const c = generate("bright afrobeat horns", { genre: "afrobeat" });
+  const c = await generate("bright afrobeat horns", { genre: "afrobeat" });
   assert.notEqual(a.id, c.id, "different inputs → different id");
   ok("musicGen is deterministic and genre-aware");
 
-  assert.throws(() => generate(""), /prompt is required/);
+  await assert.rejects(() => generate(""), /prompt is required/);
   ok("musicGen rejects empty prompt");
 }
 

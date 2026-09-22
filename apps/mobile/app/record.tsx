@@ -10,7 +10,7 @@ import { View, Pressable, Text, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Audio } from "expo-av";
-import { useSession } from "../src/auth/store";
+import { useAuth } from "../src/store/auth";
 import { Heading, Body } from "../src/components/ui";
 
 type Phase = "idle" | "recording" | "uploading" | "done";
@@ -19,7 +19,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function Record() {
   const router = useRouter();
-  const { token } = useSession();
+  const token = useAuth((s) => s.token);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [amplitude, setAmplitude] = useState(0); // 0–1 normalised
@@ -108,7 +108,7 @@ export default function Record() {
     setAmplitude(0);
   }, []);
 
-  const meterWidth = `${Math.round(amplitude * 100)}%`;
+  const meterFlex = Math.max(0.001, amplitude); // flex ratio avoids TS percentage-string error
 
   return (
     <SafeAreaView className="flex-1 bg-ink px-6">
@@ -119,12 +119,10 @@ export default function Record() {
       <View className="flex-1 items-center justify-center gap-8">
         <Heading className="text-white text-2xl text-center">Record Take</Heading>
 
-        {/* Amplitude meter */}
-        <View className="w-full h-3 bg-surface rounded-full overflow-hidden">
-          <View
-            className="h-full bg-gold rounded-full"
-            style={{ width: meterWidth }}
-          />
+        {/* Amplitude meter — uses flex so width is a number, not a % string */}
+        <View className="w-full h-3 bg-surface rounded-full overflow-hidden flex-row">
+          <View className="h-full bg-gold rounded-full" style={{ flex: meterFlex }} />
+          <View style={{ flex: Math.max(0.001, 1 - amplitude) }} />
         </View>
 
         {phase === "idle" && (
