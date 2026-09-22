@@ -1,0 +1,145 @@
+// Umhlabatea API — Prisma schema.
+//
+// Default datasource is SQLite (zero-infrastructure dev). Swap to PostgreSQL
+// for production by changing the provider and updating DATABASE_URL.
+//
+// One-time setup:
+//   npm run db:generate    # generate the Prisma client
+//   npm run db:push        # create/migrate the database
+//   DATABASE_URL=file:./dev.db npm run dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  tier         String   @default("free")
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  payments      Payment[]
+  tracks        Track[]
+  registrations Registration[]
+  agentTasks    AgentTask[]
+  posts         Post[]
+  listings      Listing[]
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  amount    Float
+  currency  String   @default("ZAR")
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Track {
+  id          String   @id
+  title       String
+  genre       String
+  bpm         Int
+  key         String
+  priceRands  Float
+  durationSec Int
+  audioUrl    String?
+  ownerId     String
+  artistName  String?
+  prompt      String?
+  generated   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  owner         User           @relation(fields: [ownerId], references: [id])
+  registrations Registration[]
+}
+
+model Registration {
+  id        String   @id @default(uuid())
+  bodyId    String
+  state     String   @default("draft")
+  payload   String   @default("{}") // JSON blob
+  history   String   @default("[]") // JSON blob
+  trackId   String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  owner User  @relation(fields: [ownerId], references: [id])
+  track Track @relation(fields: [trackId], references: [id])
+}
+
+model AgentTask {
+  id        String   @id @default(uuid())
+  title     String
+  agent     String
+  status    String   @default("open")
+  source    String?
+  ownerId   String?
+  createdAt DateTime @default(now())
+
+  owner User? @relation(fields: [ownerId], references: [id])
+}
+
+model Post {
+  id         String   @id @default(uuid())
+  body       String
+  tag        String   @default("post")
+  authorId   String
+  authorName String
+  likes      Int      @default(0)
+  comments   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+model Listing {
+  id          String   @id @default(uuid())
+  type        String   // beat | loop | session | stem
+  title       String
+  description String   @default("")
+  priceRands  Float
+  genre       String   @default("Other")
+  bpm         Int?
+  audioUrl    String?
+  sellerId    String
+  sellerName  String
+  status      String   @default("active")
+  tags        String   @default("") // comma-separated
+  createdAt   DateTime @default(now())
+
+  seller User @relation(fields: [sellerId], references: [id])
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  listingId String
+  buyerId   String
+  status    String   @default("pending")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Episode {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @default("")
+  transcript  String   @default("")
+  showNotes   String   @default("")
+  audioUrl    String?
+  duration    Int      @default(0) // seconds
+  status      String   @default("draft") // draft | published
+  ownerId     String
+  createdAt   DateTime @default(now())
+  publishedAt DateTime?
+}

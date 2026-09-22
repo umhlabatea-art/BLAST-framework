@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Umhlabatea Studio Hub</title>
+<meta name="description" content="Umhlabatea Studio Hub — AI music platform, in-browser production studio, and voice/meeting recorder for South African artists." />
+<!-- Progressive font enhancement. Blocked hosts (e.g. inside an Artifact CSP)
+     fall back to the system stacks below with no layout shift. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ═══ UMHLABATEA STUDIO HUB — bone · deep ink · safety gold ═══ */
+  :root {
+    --bone: #fcfbf8;
+    --bone-dim: #f4f2ec;
+    --surface: #ffffff;
+    --ink: #0D1B2A;
+    --ink-soft: #1e2f40;
+    --steel: #5C6B7A;
+    --muted: rgba(13,27,42,0.42);
+    --line: rgba(13,27,42,0.09);
+    --gold: #C9A84C;
+    --gold-light: #e8c96a;
+    --gold-dim: rgba(201,168,76,0.12);
+    --gold-border: rgba(201,168,76,0.30);
+    --melody: #6C8CAE;
+    --ok: #2f7d5b;
+    --danger: #c0433a;
+    /* console (studio/player) */
+    --console: #0b1622;
+    --console-2: #12212f;
+    --console-line: #26384a;
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 18px; --radius-sm: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--body); font-weight: 300; background: var(--bone); color: var(--ink);
+    -webkit-font-smoothing: antialiased; line-height: 1.6; font-size: 14px; position: relative;
+  }
+  /* film grain */
+  body::before {
+    content:''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+  a { color: inherit; text-decoration: none; }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  ::selection { background: var(--gold-dim); }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+  header.topbar {
+    position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; background: rgba(252,251,248,.82);
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border-bottom: 1px solid var(--gold-border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); display: grid; place-items: center; position: relative; overflow: hidden; flex-shrink: 0; }
+  .brand .mark::after { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--gold) 0%, transparent 60%); opacity: .45; }
+  .brand .mark svg { width: 15px; height: 15px; fill: var(--gold); position: relative; z-index: 1; }
+  .brand .word { font-family: var(--display); font-weight: 400; font-size: 1rem; letter-spacing: -.01em; }
+  .brand .word em { font-style: italic; color: var(--gold); }
+  .grow { flex: 1; }
+  .iconbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 100px; padding: 7px 13px; cursor: pointer; font-weight: 500; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; transition: .15s; font-family: var(--mono); letter-spacing: .03em; }
+  .iconbtn:hover { border-color: var(--gold); }
+
+  nav.tabs {
+    position: sticky; bottom: 0; z-index: 40; display: flex; gap: 2px; padding: 6px; overflow-x: auto;
+    background: rgba(252,251,248,.95); backdrop-filter: blur(16px);
+    border-top: 1px solid var(--gold-border);
+  }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs button {
+    flex: 1 0 auto; min-width: 64px; border: 0; background: transparent; cursor: pointer;
+    padding: 7px 8px; border-radius: 10px; color: var(--steel); font-weight: 500; font-size: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px; transition: .15s; font-family: var(--mono); letter-spacing: .04em;
+  }
+  nav.tabs button .ico { font-size: 16px; line-height: 1; }
+  nav.tabs button[aria-current="true"] { color: var(--ink); background: var(--gold-dim); }
+  main { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 20px 16px 30px; }
+  section[data-zone] { display: none; }
+  section[data-zone].active { display: block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Typography ── */
+  .display { font-family: var(--display); font-weight: 400; letter-spacing: -.03em; line-height: 1.05; font-size: 28px; }
+  .display em { font-style: italic; color: var(--gold); }
+  .h2 { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: -.02em; }
+  .muted { color: var(--steel); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+  .eyebrow::before { content:''; width: 22px; height: 1px; background: var(--gold); }
+  .label { font-family: var(--mono); text-transform: uppercase; letter-spacing: .12em; font-size: 10px; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; position: relative; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .wrap { flex-wrap: wrap; }
+  .stack > * + * { margin-top: 12px; }
+  .chip { border: 1px solid var(--line); border-radius: 100px; padding: 5px 12px; font-size: 11px; font-weight: 400; color: var(--steel); background: var(--surface); cursor: pointer; transition: .15s; font-family: var(--body); }
+  .chip.on { background: var(--ink); color: var(--bone); border-color: var(--ink); }
+  .badge { border-radius: 100px; padding: 3px 10px; font-size: 10px; font-weight: 500; display: inline-block; font-family: var(--mono); letter-spacing: .04em; }
+  .badge.gold { background: var(--gold-dim); color: #9c7f2e; border: 1px solid var(--gold-border); }
+  .badge.ok { background: rgba(47,125,91,.12); color: var(--ok); }
+  .badge.mut { background: rgba(13,27,42,.05); color: var(--steel); }
+  .btn { border: 1px solid var(--ink); background: var(--ink); color: var(--bone); border-radius: 100px; padding: 12px 18px; font-weight: 500; cursor: pointer; transition: .2s; width: 100%; font-family: var(--body); }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(13,27,42,.14); }
+  .btn.gold { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .btn.gold:hover { background: var(--gold-light); box-shadow: 0 10px 26px rgba(201,168,76,.32); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: rgba(13,27,42,.18); box-shadow: none; }
+  .btn.ghost:hover { border-color: var(--gold); color: #9c7f2e; background: var(--gold-dim); box-shadow: none; }
+  .btn.sm { width: auto; padding: 8px 14px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  input[type=text], input[type=password], input[type=search], textarea, select {
+    width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+    padding: 12px 13px; outline: none; transition: .15s; font-weight: 300;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--gold-border); box-shadow: 0 0 0 3px rgba(201,168,76,.1); }
+  textarea { resize: vertical; min-height: 90px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .divider { height: 1px; background: var(--line); margin: 16px 0; }
+  .cover { border-radius: 10px; display: grid; place-items: center; color: var(--bone); font-family: var(--display); }
+
+  /* ── Home ── */
+  .hero { text-align: left; padding: 8px 0 4px; }
+  .hero h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2.2rem, 8vw, 3rem); line-height: 1.02; letter-spacing: -.04em; margin: 12px 0; }
+  .hero h1 em { font-style: italic; color: var(--gold); }
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 16px; }
+  .stat { text-align: center; border: 1px solid var(--line); border-radius: 14px; padding: 14px 6px; background: var(--surface); }
+  .stat b { display: block; font-family: var(--display); font-size: 22px; font-weight: 400; }
+  .stat b em { font-style: italic; color: var(--gold); }
+  .stat span { font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .feature { display: flex; gap: 13px; align-items: flex-start; transition: .25s; }
+  .feature:hover { border-color: var(--gold-border); }
+  .feature .ico { font-size: 20px; }
+  .feature b { font-family: var(--display); font-weight: 400; font-size: 15px; }
+  .ticker .item { padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  .trust { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .trust span { font-family: var(--display); font-style: italic; font-size: 12px; color: rgba(13,27,42,.4); }
+
+  /* ── Studio console ── */
+  .console { background: var(--console); color: #e9eef3; border-radius: 20px; padding: 16px; border: 1px solid var(--console-line); }
+  .console .label { color: #8aa0b5; }
+  .console .muted { color: #9fb2c4; }
+  .transport { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .tbtn { width: 48px; height: 48px; border-radius: 14px; border: 1px solid var(--console-line); background: var(--console-2); color: #e9eef3; cursor: pointer; font-size: 18px; display: grid; place-items: center; transition: .15s; }
+  .tbtn:hover { border-color: var(--gold); }
+  .tbtn.play.on { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .led { width: 9px; height: 9px; border-radius: 50%; background: #34485c; box-shadow: inset 0 0 2px #000; }
+  .led.on { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+  .seq, .roll { display: grid; gap: 6px; margin-top: 10px; }
+  .seqrow { display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: center; }
+  .seqrow .name { font-size: 10px; font-weight: 500; display: flex; align-items: center; gap: 6px; font-family: var(--mono); letter-spacing: .02em; }
+  .steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+  .step { aspect-ratio: 1; border-radius: 5px; border: 1px solid var(--console-line); background: var(--console-2); cursor: pointer; transition: .06s; }
+  .step.on { background: var(--gold); border-color: var(--gold); }
+  .step.mstep.on { background: var(--melody); border-color: var(--melody); }
+  .step.beat { border-color: #3a4f63; }
+  .step.playhead { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+  .mixer { display: grid; gap: 10px; margin-top: 10px; }
+  .ch { border: 1px solid var(--console-line); border-radius: 12px; padding: 11px; background: var(--console-2); }
+  .ch .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ch .top b { font-family: var(--display); font-weight: 400; font-size: 14px; }
+  .knobs { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+  .knob label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #8aa0b5; margin-bottom: 3px; font-family: var(--mono); }
+  input[type=range] { width: 100%; accent-color: var(--gold); }
+  .mini { border: 0; background: var(--console-line); color: #e9eef3; border-radius: 8px; padding: 5px 9px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: var(--mono); }
+  .mini.on { background: var(--gold); color: var(--ink); }
+  .fxrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .fxpill { display: flex; align-items: center; gap: 8px; background: var(--console-2); border: 1px solid var(--console-line); border-radius: 12px; padding: 8px 10px; }
+  .fxpill .mini { min-width: 60px; text-align: center; }
+  .fxpill input[type=range] { width: 66px; }
+  .eqguide { font-size: 12px; }
+  .eqguide code { color: #9c7f2e; font-family: var(--mono); }
+
+  /* ── Cassette player ── */
+  .tape { background: linear-gradient(180deg,#12212f,#0b1622); border-radius: 20px; padding: 18px; color: #e9eef3; border: 1px solid var(--console-line); }
+  .reels { display: flex; align-items: center; justify-content: center; gap: 44px; padding: 16px 0; }
+  .reel { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #4a6076; position: relative; background: repeating-radial-gradient(circle, #26384a 0 3px, #12212f 3px 6px); }
+  .reel.spin { animation: spin 2.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reel::after { content:""; position:absolute; inset:23px; border-radius:50%; background:#0b1622; }
+  .queue .qitem { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--console-line); font-size:12px; cursor:pointer; font-family: var(--mono); }
+  .queue .qitem.on { color: var(--gold); }
+
+  /* ── Recorder ── */
+  .rec-dot { width:10px; height:10px; border-radius:50%; background:var(--danger); }
+  .rec-dot.live { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .transcript { min-height: 130px; max-height: 240px; overflow:auto; border:1px solid var(--line); border-radius:12px; padding:13px; background:var(--surface); white-space:pre-wrap; font-weight: 300; }
+  .transcript .interim { color: var(--muted); }
+  .minutes h4 { font-family: var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin-top:12px; }
+  .minutes ul { margin:6px 0 0 18px; }
+  .minutes li { margin:4px 0; }
+
+  /* ── Agents / tasks ── */
+  .task { display:flex; gap:10px; align-items:flex-start; padding:11px 0; border-bottom:1px dashed var(--line); }
+  .task:last-child { border-bottom:0; }
+  .task.done .ttitle { text-decoration: line-through; color: var(--muted); }
+
+  /* ── Modal / toast ── */
+  .modal-bg { position:fixed; inset:0; background:rgba(13,27,42,.5); display:none; align-items:flex-end; justify-content:center; z-index:60; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:520px; border-radius:22px 22px 0 0; padding:20px; max-height:88vh; overflow:auto; }
+  @media(min-width:560px){ .modal-bg{align-items:center} .modal{border-radius:22px} }
+  .toast { position:fixed; left:50%; bottom:78px; transform:translateX(-50%) translateY(20px); opacity:0; background:var(--ink); color:var(--bone); padding:11px 18px; border-radius:100px; font-size:12px; font-weight:400; z-index:70; transition:.25s; pointer-events:none; max-width:90%; text-align:center; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .foot { text-align:center; font-size:11px; color:var(--muted); margin-top:24px; font-family: var(--mono); letter-spacing:.05em; }
+  @media (min-width:560px){ .display{font-size:32px} }
+
+  /* ── Live Collab (OpenScreen-inspired) ── */
+  .collab-preview { position: relative; background: #000; border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; width: 100%; }
+  .collab-screen { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .collab-webcam { position: absolute; bottom: 12px; right: 12px; width: 22%; border-radius: 10px; border: 2px solid rgba(201,168,76,.4); object-fit: cover; aspect-ratio: 4/3; }
+  .collab-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  .collab-toolbar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .col-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: .15s; flex-shrink: 0; }
+  .col-swatch.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,.3); }
+  .col-chat-msg { padding: 5px 0; border-bottom: 1px dashed var(--console-line); font-size: 12px; }
+  .col-chat-msg .who { font-family: var(--mono); font-size: 10px; color: var(--gold); margin-bottom: 2px; }
+  .peer-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--console-2); border: 1px solid var(--console-line); border-radius: 100px; padding: 3px 9px; font-family: var(--mono); font-size: 10px; color: #9fb2c4; }
+  .peer-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+
+  /* ── Multitrack Recorder ── */
+  .mt-track { background: var(--console-2); border: 1px solid var(--console-line); border-radius: 14px; padding: 12px; margin-bottom: 6px; }
+  .mt-track.muted-track { opacity: .38; }
+  .mt-canvas { width: 100%; height: 52px; border-radius: 8px; background: var(--console); display: block; margin: 6px 0; }
+  .mt-fxgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mt-fxpill { background: var(--console-2); border: 1px solid var(--console-line); border-radius: 12px; padding: 10px 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24"><path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5"/></svg></div>
+      <div class="word">Umhlab<em>a</em>tea</div>
+    </div>
+    <div class="grow"></div>
+    <button class="iconbtn" id="aiStatus" onclick="Hub.openSettings()">◍ Offline</button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section data-zone="home" class="active">
+      <div class="hero stack">
+        <div>
+          <div class="eyebrow">Sovereign music platform · South Africa</div>
+          <h1>Your music.<br>Your land.<br><em>Your future.</em></h1>
+          <p class="muted">One hub: distribution &amp; payouts, an in-browser production studio, six AI agents, SAMRO/CAPASSO/RISA compliance, and a voice &amp; meeting recorder that wires into all of it.</p>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn gold" style="width:auto" onclick="Hub.go('studio')">Open the Studio</button>
+          <button class="btn ghost" style="width:auto" onclick="Hub.go('voice')">Record</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>80<em>%</em></b><span>to artists</span></div>
+          <div class="stat"><b>48<em>h</em></b><span>payouts</span></div>
+          <div class="stat"><b>6</b><span>AI agents</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Why umhlabatea</div>
+      <div class="stack" style="margin-top:12px">
+        <div class="card feature"><div class="ico">💸</div><div><b>80/20 revenue split</b><div class="muted">Artists keep 80% of every sale. Payouts in 48–72h, settled in rand.</div></div></div>
+        <div class="card feature"><div class="ico">🎛️</div><div><b>In-browser studio</b><div class="muted">Sequencer, piano-roll, mixer, EQ &amp; effects tuned for Amapiano — no install.</div></div></div>
+        <div class="card feature"><div class="ico">⚖️</div><div><b>SAMRO · CAPASSO · RISA</b><div class="muted">Automated rights registration. Stay compliant without the paperwork.</div></div></div>
+        <div class="card feature"><div class="ico">🎙️</div><div><b>Voice &amp; meeting minutes</b><div class="muted">Dictate ideas, record sessions, get AI minutes, turn them into agent tasks.</div></div></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Anchored in</div>
+      <div class="trust" style="margin-top:12px"><span>SAMRO</span><span>CAPASSO</span><span>RISA</span><span>POPIA</span><span>SARS-ready</span></div>
+
+      <div class="divider"></div>
+      <div class="row between"><div class="eyebrow">Live on the platform</div><span class="badge gold">● live</span></div>
+      <div class="card ticker" id="ticker" style="margin-top:12px"></div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">Featured artists</div>
+      <div class="stack" id="featured" style="margin-top:12px"></div>
+      <div class="foot">© 2026 umhlabatea studios · Built in South Africa</div>
+    </section>
+
+    <!-- STUDIO -->
+    <section data-zone="studio">
+      <div class="row between">
+        <div><div class="eyebrow">Production studio</div><div class="display" style="margin-top:6px">Studio</div></div>
+        <button class="btn ghost sm" onclick="Studio.loadPreset('amapiano')">⚡ Amapiano</button>
+      </div>
+      <p class="muted" style="margin:10px 0 14px">A real Web Audio engine — drums, log drum, bass and a melodic piano-roll, through a mixer with EQ and master effects. Tap, play, tweak, then bounce a .wav or save it as a track.</p>
+
+      <div class="console stack">
+        <div class="transport">
+          <button class="tbtn play" id="playBtn" onclick="Studio.toggle()">▶</button>
+          <div class="led" id="playLed"></div>
+          <div>
+            <div class="label">Tempo</div>
+            <div class="row" style="gap:6px"><input type="range" min="80" max="140" value="115" id="bpm" oninput="Studio.setBpm(this.value)" style="width:110px"><b id="bpmVal" style="font-family:var(--mono)">115</b></div>
+          </div>
+          <div class="grow"></div>
+          <div><div class="label">Master</div><input type="range" min="0" max="100" value="80" id="master" oninput="Studio.setMaster(this.value)" style="width:84px"></div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:6px">Drum sequencer · 16 steps</div>
+          <div class="seq" id="seq"></div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:6px">Piano-roll · C minor pentatonic</div>
+          <div class="roll" id="roll"></div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:6px">Master effects</div>
+          <div class="fxrow" id="fxrow"></div>
+        </div>
+      </div>
+
+      <div class="row between" style="margin:16px 0 8px"><div class="eyebrow">Mixer &amp; EQ</div><span class="chip">3-band per channel</span></div>
+      <div class="mixer" id="mixer"></div>
+
+      <!-- Audacity-quality master processing panel -->
+      <div class="card stack" style="margin-top:16px;background:var(--s2)">
+        <div class="row between" style="margin-bottom:8px">
+          <div class="eyebrow">Master DSP</div>
+          <span class="chip" id="lufsDisplay" style="font-family:var(--mono);min-width:80px">-- LUFS</span>
+        </div>
+        <div style="display:flex;gap:8px;font-size:11px;font-family:var(--mono);color:var(--t3);margin-bottom:8px">
+          <span id="lufsShortTerm">Short: --</span>
+          <span id="lufsIntegrated">Integrated: --</span>
+        </div>
+        <!-- Spectral noise gate controls -->
+        <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseLearnStart()">Learn Noise Profile</button>
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseLearnStop()">Apply Gate</button>
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseBypass()">Bypass Gate</button>
+        </div>
+        <!-- Spectral view canvas -->
+        <canvas id="spectralView" width="400" height="60" style="width:100%;height:60px;border-radius:6px;background:#0d0c1e;display:block;margin-bottom:4px"></canvas>
+        <div class="muted" style="font-size:10px">Frequency spectrum (log scale). Red overlay = noise floor when profile is active.</div>
+      </div>
+
+      <div class="card stack" style="margin-top:16px">
+        <div class="eyebrow">Bounce &amp; save</div>
+        <input type="text" id="beatTitle" placeholder="Name your beat (e.g. Sunrise Log Drum)" />
+        <!-- Sample import -->
+        <div style="margin:6px 0">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Import audio sample into multitrack</label>
+          <input type="file" id="sampleImport" accept="audio/*" style="font-size:11px;color:var(--t2)" onchange="Studio.importSample(this)" />
+        </div>
+        <div class="grid2">
+          <button class="btn gold" onclick="Studio.bounce()">⭳ Bounce .wav</button>
+          <button class="btn ghost" onclick="Studio.saveTrack()">＋ Save as track</button>
+        </div>
+        <div class="grid2" style="margin-top:6px">
+          <button class="btn ghost" onclick="Studio.exportMidi()">⭳ Export MIDI</button>
+          <button class="btn ghost" style="font-size:11px" onclick="Studio.normalizeToLufs(-14)">Normalize to -14 LUFS</button>
+        </div>
+        <audio id="bounceOut" controls style="width:100%; display:none"></audio>
+        <div class="muted" style="font-size:11px">Bounce renders 2 bars offline to a WAV you can download (or long-press to save on mobile). Saved beats appear in Library and can be registered, optimised by the SEO agent, or annotated from the recorder.</div>
+      </div>
+
+      <div class="card eqguide stack" style="margin-top:14px">
+        <div class="eyebrow">EQ quick reference <span class="muted" style="font-family:var(--mono)">· from your guide</span></div>
+        <div id="eqguide"></div>
+      </div>
+    </section>
+
+    <!-- PLAYER -->
+    <section data-zone="player">
+      <div class="eyebrow">Umhlabatea Studios</div>
+      <div class="display" style="margin-top:6px">The <em>Player</em></div>
+      <p class="muted" style="margin:10px 0 14px">Retro vibes, modern sound. The B.A.Hz (Born Again Hooliganz) Retroblend radio show.</p>
+      <div class="tape">
+        <div class="row between"><div class="label" style="color:#8aa0b5">◉ RBX-9000</div><span class="badge mut" id="tapeState">■ STOPPED</span></div>
+        <div class="reels"><div class="reel" id="reelL"></div><div class="reel" id="reelR"></div></div>
+        <div style="text-align:center">
+          <b id="tapeTitle" style="font-family:var(--display); font-size:18px">EP.001 — B.A.Hz</b>
+          <div class="muted" style="font-size:12px">Retroblend Radio Show · Side A</div>
+        </div>
+        <div class="row" style="justify-content:center; gap:14px; margin:14px 0">
+          <button class="tbtn" onclick="Player.prev()">⏮</button>
+          <button class="tbtn play" id="tapePlay" onclick="Player.toggle()">▶</button>
+          <button class="tbtn" onclick="Player.next()">⏭</button>
+        </div>
+        <div class="label" style="color:#8aa0b5; margin-bottom:6px">Track queue · 12 episodes</div>
+        <div class="queue" id="queue"></div>
+      </div>
+      <p class="muted" style="font-size:11px; margin-top:10px">The cassette player is a visual homage — episodes stream in the full app; here the reels turn as you play.</p>
+    </section>
+
+    <!-- VOICE -->
+    <section data-zone="voice">
+      <div class="eyebrow">Voice &amp; meeting minutes</div>
+      <div class="display" style="margin-top:6px">Recorder</div>
+      <p class="muted" style="margin:10px 0 14px">Dictate song ideas or capture a session. Live transcription, audio capture, AI minutes — then turn action items into agent tasks or attach notes anywhere in the hub.</p>
+
+      <div class="card stack">
+        <div class="row between">
+          <div class="row" style="gap:8px"><span class="rec-dot" id="recDot"></span><b id="recLabel" style="font-family:var(--display); font-weight:400">Ready</b></div>
+          <span class="badge mut" id="recTimer">00:00</span>
+        </div>
+        <div class="grid2">
+          <button class="btn" id="recBtn" onclick="Recorder.toggle()">● Start recording</button>
+          <button class="btn ghost" id="dictBtn" onclick="Recorder.toggleDictation()">🎤 Live dictation</button>
+        </div>
+        <audio id="audioOut" controls style="width:100%; display:none"></audio>
+        <div>
+          <div class="label" style="margin-bottom:6px">Transcript <span class="muted" id="sttNote"></span></div>
+          <div class="transcript" id="transcript" contenteditable="true" spellcheck="false"></div>
+        </div>
+        <div class="grid2">
+          <button class="btn gold" onclick="Recorder.makeMinutes()">✦ Generate minutes</button>
+          <button class="btn ghost" onclick="Recorder.attachPrompt()">🔗 Attach to…</button>
+        </div>
+      </div>
+
+      <div class="card minutes stack" id="minutesCard" style="margin-top:14px; display:none">
+        <div class="row between"><div class="eyebrow">Meeting minutes</div><span class="badge" id="minutesSrc"></span></div>
+        <div id="minutesBody"></div>
+        <div class="grid2">
+          <button class="btn" onclick="Recorder.createTasks()">✅ Create agent tasks</button>
+          <button class="btn ghost" onclick="Recorder.attachPrompt('minutes')">🔗 Attach minutes</button>
+        </div>
+        <button class="btn ghost sm" style="width:auto" onclick="Recorder.copyMinutes()">⧉ Copy minutes</button>
+      </div>
+
+      <div class="card stack" style="margin-top:14px">
+        <div class="eyebrow">Recent notes across the hub</div>
+        <div id="notesList"></div>
+      </div>
+    </section>
+
+    <!-- AGENTS -->
+    <section data-zone="agents">
+      <div class="eyebrow">Your team</div>
+      <div class="display" style="margin-top:6px">6 AI <em>Agents</em></div>
+      <p class="muted" style="margin:10px 0 14px">A personal team of specialists — some interactive here, running on-device or via your OpenRouter key.</p>
+
+      <div class="card stack" style="margin-bottom:14px">
+        <div class="row between"><div class="eyebrow">Task queue</div><span class="badge mut" id="taskCount">0 open</span></div>
+        <div id="taskList"></div>
+        <div class="muted" style="font-size:11px">Tasks created from meeting minutes land here. With an API URL set in Settings, they sync to the backend so the mobile app reads them too.</div>
+      </div>
+
+      <div class="stack" id="agents"></div>
+    </section>
+
+    <!-- RIGHTS -->
+    <section data-zone="rights">
+      <div class="eyebrow">Compliance</div>
+      <div class="display" style="margin-top:6px">Rights <em>Hub</em></div>
+      <p class="muted" style="margin:10px 0 14px">The legal agent prepares and tracks registrations with the collecting bodies. Pick a track, prepare a submission, and advance it through the pipeline.</p>
+      <div class="card stack"><div class="label">Track to register</div><select id="regTrack"></select></div>
+      <div class="stack" id="bodies" style="margin-top:14px"></div>
+      <div class="eyebrow" style="margin:18px 0 8px">Your registrations</div>
+      <div class="stack" id="regs"></div>
+    </section>
+
+    <!-- PRICING -->
+    <section data-zone="pricing">
+      <div class="eyebrow">Plans</div>
+      <div class="display" style="margin-top:6px">Fair <em>pricing</em></div>
+      <p class="muted" style="margin:10px 0 14px">No hidden fees. No long contracts. Artists always keep 80%.</p>
+      <div class="stack" id="tiers"></div>
+      <div class="foot">Prices in ZAR · cancel anytime · VAT included</div>
+    </section>
+
+    <!-- COLLAB -->
+    <section data-zone="collab">
+      <div class="eyebrow">OpenScreen-inspired</div>
+      <div class="display" style="margin-top:6px">Live <em>Collab</em></div>
+      <p class="muted" style="margin:10px 0 14px">Share your screen, annotate together, record the session, and chat — all in the browser. Same-device rooms use BroadcastChannel; replace with WebRTC/Supabase Realtime for cross-device.</p>
+
+      <div class="console stack">
+        <!-- Room -->
+        <div class="row" style="gap:8px; flex-wrap:wrap; align-items:flex-end">
+          <div style="flex:1; min-width:140px">
+            <div class="label" style="color:#8aa0b5; margin-bottom:5px">Room code</div>
+            <input id="col-room" type="text" placeholder="e.g. jozi-session-01" style="background:var(--console-2); border:1px solid var(--console-line); color:#e9eef3; border-radius:10px; padding:9px 11px; font-family:var(--mono); font-size:12px; width:100%">
+          </div>
+          <div style="display:flex; gap:6px; padding-bottom:1px">
+            <button class="mini" onclick="Collab.createRoom()">Create</button>
+            <button class="mini" onclick="Collab.joinRoom()">Join</button>
+            <button class="mini" id="col-leaveBtn" style="display:none" onclick="Collab.leaveRoom()">Leave</button>
+          </div>
+        </div>
+        <!-- Peers -->
+        <div class="row" style="gap:6px; flex-wrap:wrap; min-height:20px" id="col-peers">
+          <span style="font-family:var(--mono); font-size:11px; color:#4a6076">Not in a room.</span>
+        </div>
+
+        <!-- Screen preview + webcam pip + annotation canvas -->
+        <div class="collab-preview" id="col-preview">
+          <video id="col-screen" class="collab-screen" autoplay muted playsinline></video>
+          <video id="col-webcam" class="collab-webcam" autoplay muted playsinline style="display:none"></video>
+          <canvas id="col-canvas" class="collab-canvas" style="display:none; cursor:crosshair"></canvas>
+          <div id="col-idle" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#4a6076;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Screen capture inactive</div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="collab-toolbar">
+          <button class="mini" id="col-screenBtn" onclick="Collab.toggleScreen()">⊞ Screen</button>
+          <button class="mini" id="col-camBtn" onclick="Collab.toggleWebcam()">◉ Webcam</button>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <button class="mini" id="col-penBtn" onclick="Collab.setTool('pen')">✏ Pen</button>
+          <button class="mini" id="col-hlBtn" onclick="Collab.setTool('highlight')">◈ Highlight</button>
+          <button class="mini" id="col-arrowBtn" onclick="Collab.setTool('arrow')">↗ Arrow</button>
+          <button class="mini" id="col-eraseBtn" onclick="Collab.setTool('erase')">⌫ Erase</button>
+          <button class="mini" onclick="Collab.clearCanvas()">✕ Clear</button>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <div class="col-swatch active" style="background:#C9A84C" onclick="Collab.setColor('#C9A84C',this)"></div>
+          <div class="col-swatch" style="background:#6C8CAE" onclick="Collab.setColor('#6C8CAE',this)"></div>
+          <div class="col-swatch" style="background:#27ae60" onclick="Collab.setColor('#27ae60',this)"></div>
+          <div class="col-swatch" style="background:#e74c3c" onclick="Collab.setColor('#e74c3c',this)"></div>
+          <div class="col-swatch" style="background:#e9eef3;border:1px solid var(--console-line)" onclick="Collab.setColor('#e9eef3',this)"></div>
+          <div style="width:1px;height:16px;background:var(--console-line)"></div>
+          <button class="mini" id="col-recBtn" onclick="Collab.toggleRecord()">⏺ Record</button>
+        </div>
+
+        <!-- Chat -->
+        <div style="border-top:1px solid var(--console-line);padding-top:10px">
+          <div class="label" style="color:#8aa0b5; margin-bottom:7px">Session chat</div>
+          <div id="col-chat" style="max-height:150px; overflow-y:auto; margin-bottom:8px">
+            <p style="font-family:var(--mono);font-size:11px;color:#4a6076">Join a room to chat.</p>
+          </div>
+          <div class="row" style="gap:8px">
+            <input id="col-msg" type="text" placeholder="Message…" style="flex:1;background:var(--console-2);border:1px solid var(--console-line);color:#e9eef3;border-radius:10px;padding:8px 10px;font-size:12px" onkeydown="if(event.key==='Enter')Collab.sendChat()">
+            <button class="mini" onclick="Collab.sendChat()">Send</button>
+          </div>
+        </div>
+
+        <!-- Recording output -->
+        <video id="col-recOut" controls style="width:100%;display:none;margin-top:6px;border-radius:10px"></video>
+      </div>
+    </section>
+
+    <!-- MULTITRACK -->
+    <section data-zone="multitrack">
+      <div class="eyebrow">Tenacity-inspired</div>
+      <div class="display" style="margin-top:6px"><em>Multi</em>track</div>
+      <p class="muted" style="margin:10px 0 14px">Stack takes, apply studio effects — noise gate, compressor, EQ, reverb, limiter — then mix down to a 16-bit WAV.</p>
+      <div class="console stack">
+        <div class="transport">
+          <div class="row" style="gap:8px">
+            <div class="rec-dot" id="mt-dot"></div>
+            <span class="label" id="mt-label" style="color:#8aa0b5">Ready</span>
+          </div>
+          <div style="font-family:var(--mono); font-size:20px; font-weight:500; color:var(--gold); min-width:56px" id="mt-timer">00:00</div>
+          <div class="grow"></div>
+          <button class="tbtn" id="mt-recBtn" onclick="MultiTrack.toggleRec()" title="Record">⏺</button>
+          <button class="tbtn" onclick="MultiTrack.playAll()" title="Play all">▶</button>
+          <button class="tbtn" onclick="MultiTrack.stopAll()" title="Stop">■</button>
+        </div>
+        <canvas id="mt-liveCanvas" class="mt-canvas" width="560" height="52"></canvas>
+        <div id="mt-tracks" class="stack"></div>
+        <div class="row" style="gap:8px; flex-wrap:wrap; padding-top:4px">
+          <button class="mini" onclick="MultiTrack.mixDown()">⬇ Mix to WAV</button>
+          <button class="mini" onclick="MultiTrack.clearAll()">✕ Clear</button>
+        </div>
+        <div style="border-top:1px solid var(--console-line); margin:10px 0 0; padding-top:10px">
+          <div class="label" style="color:#8aa0b5; margin-bottom:8px">Effects chain</div>
+          <div class="mt-fxgrid" id="mt-fxgrid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs"></nav>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="settingsBg" onclick="if(event.target===this)Hub.closeSettings()">
+  <div class="modal stack">
+    <div class="row between"><div class="h2">Settings</div><button class="iconbtn" onclick="Hub.closeSettings()">✕</button></div>
+    <p class="muted" style="font-size:12px">An OpenRouter key runs live AI (meeting minutes, SEO). An API URL syncs agent tasks to the backend so the mobile app can read them. Both are stored only in this browser.</p>
+    <div><div class="label" style="margin-bottom:6px">OpenRouter API key</div><input type="password" id="orKey" placeholder="sk-or-..." /></div>
+    <div><div class="label" style="margin-bottom:6px">Model</div><input type="text" id="orModel" placeholder="anthropic/claude-3.5-sonnet" /></div>
+    <div><div class="label" style="margin-bottom:6px">API URL (optional)</div><input type="text" id="apiUrl" placeholder="https://your-api.example.com" /></div>
+    <div class="grid2">
+      <button class="btn" onclick="Hub.saveSettings()">Save</button>
+      <button class="btn ghost" onclick="Hub.clearSettings()">Clear key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Attach modal -->
+<div class="modal-bg" id="attachBg" onclick="if(event.target===this)Hub.closeAttach()">
+  <div class="modal stack">
+    <div class="row between"><div class="h2">Attach note</div><button class="iconbtn" onclick="Hub.closeAttach()">✕</button></div>
+    <p class="muted" style="font-size:12px">Connect this transcript / minutes to anywhere in the hub.</p>
+    <div><div class="label" style="margin-bottom:6px">Where</div>
+      <select id="attachTarget" onchange="Hub.renderAttachItems()">
+        <option value="track">🎵 A track</option>
+        <option value="registration">⚖️ A rights registration</option>
+        <option value="post">💬 A community post</option>
+        <option value="agent">🤖 An agent task</option>
+      </select>
+    </div>
+    <div id="attachItems"></div>
+    <button class="btn gold" onclick="Hub.confirmAttach()">Attach</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Umhlabatea Studio Hub — self-contained, dependency-free.
+   ========================================================================== */
+
+const STORE_KEY = "umhlabatea.hub.v2";
+const uid = (p) => p + "_" + Math.random().toString(36).slice(2, 8);
+
+/* ---------------- Store ---------------- */
+const Store = {
+  data: null,
+  seed() {
+    return {
+      settings: { openRouterKey: "", model: "anthropic/claude-3.5-sonnet", apiUrl: "" },
+      tracks: [
+        { id: "trk_ithemba", title: "Ithemba Lami", artist: "Nomusa Dlamini", genre: "Afro-Soul", plays: 24500, price: 150, notes: [] },
+        { id: "trk_gqom", title: "Gqom Nation", artist: "Sipho Mkhize", genre: "Amapiano", plays: 89200, price: 180, notes: [] },
+        { id: "trk_ubuntu", title: "Ubuntu Rising", artist: "Thandiwe Cele", genre: "Maskandi", plays: 56100, price: 120, notes: [] },
+        { id: "trk_jozi", title: "Streets of Jozi", artist: "Bongani Nkosi", genre: "Hip-Hop", plays: 112000, price: 200, notes: [] },
+      ],
+      registrations: [], posts: [
+        { id: uid("post"), author: "Sizwe D.", body: "Log drum tips for 115 BPM?", notes: [] },
+        { id: uid("post"), author: "Ayanda K.", body: "Durban session this weekend?", notes: [] },
+      ],
+      agentTasks: [], notes: [],
+    };
+  },
+  load() {
+    try { this.data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { this.data = null; }
+    if (!this.data) { this.data = this.seed(); this.save(); }
+    return this.data;
+  },
+  save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {} },
+};
+
+/* ---------------- AI provider ---------------- */
+const AI = {
+  hasKey() { return !!(Store.data.settings.openRouterKey || "").trim(); },
+  async chat(system, user) {
+    const s = Store.data.settings;
+    if (!this.hasKey()) return null;
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + s.openRouterKey.trim() },
+        body: JSON.stringify({ model: s.model || "anthropic/claude-3.5-sonnet", messages: [
+          { role: "system", content: system }, { role: "user", content: user } ] }),
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      return j.choices?.[0]?.message?.content || null;
+    } catch (e) { return null; }
+  },
+};
+
+/* action-item → agent routing (mirrors packages/core/agents/tasks.js) */
+function routeAgent(text) {
+  const s = String(text || "");
+  const routes = [
+    ["legal", /\b(samro|capasso|risa|register|registration|contract|split|isrc|licen[cs]e|copyright|rights|compl(y|iance)|popia)\b/i],
+    ["mixing", /\b(mix|master|eq|level|gain|bounce|stem|mixdown|loud(ness)?|lufs)\b/i],
+    ["visual", /\b(art(work)?|cover|visual|video|4k|image|thumbnail|poster)\b/i],
+    ["marketing", /\b(promot|campaign|market|post|social|release|launch|schedule|ad|announc)\b/i],
+    ["crm", /\b(fan|lead|prospect|email|contact|follow[- ]?up|superfan|audience|crm)\b/i],
+    ["seo", /\b(seo|aeo|keyword|metadata|tag|discover|search|optimi[sz]e|title)\b/i],
+  ];
+  for (const [agent, re] of routes) if (re.test(s)) return agent;
+  return "crm";
+}
+
+/* ---------------- Hub ---------------- */
+const TABS = [
+  { id: "home", ico: "⌂", label: "Home" },
+  { id: "studio", ico: "🎛", label: "Studio" },
+  { id: "player", ico: "📻", label: "Player" },
+  { id: "voice", ico: "🎙", label: "Record" },
+  { id: "multitrack", ico: "🎚", label: "Tracks" },
+  { id: "collab", ico: "🖥", label: "Collab" },
+  { id: "agents", ico: "🤖", label: "Agents" },
+  { id: "rights", ico: "⚖", label: "Rights" },
+  { id: "pricing", ico: "◆", label: "Plans" },
+];
+const Hub = {
+  zone: "home",
+  init() {
+    Store.load();
+    document.getElementById("tabs").innerHTML = TABS.map(t => `<button data-tab="${t.id}" onclick="Hub.go('${t.id}')"><span class="ico">${t.ico}</span>${t.label}</button>`).join("");
+    this.renderAll(); this.go("home"); this.refreshAiStatus();
+  },
+  go(zone) {
+    this.zone = zone;
+    document.querySelectorAll("section[data-zone]").forEach(s => s.classList.toggle("active", s.dataset.zone === zone));
+    document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === zone ? "true" : "false"));
+    if (zone !== "player") Player.stopReels();
+    window.scrollTo({ top: 0 });
+    if (zone === "voice") Recorder.renderNotes();
+    if (zone === "rights") Rights.render();
+    if (zone === "studio") { Studio.render(); Studio.startSpectrum(); }
+    else { Studio.stopSpectrum(); }
+    if (zone === "agents") Agents.renderTasks();
+    if (zone === "multitrack") MultiTrack.render();
+    if (zone === "collab") Collab.render();
+  },
+  renderAll() { Home.render(); Studio.render(); Player.render(); Agents.render(); Agents.renderTasks(); Rights.render(); Pricing.render(); Recorder.renderNotes(); MultiTrack.render(); Collab.render(); },
+  toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove("show"), 2400); },
+  openSettings() {
+    document.getElementById("orKey").value = Store.data.settings.openRouterKey || "";
+    document.getElementById("orModel").value = Store.data.settings.model || "";
+    document.getElementById("apiUrl").value = Store.data.settings.apiUrl || "";
+    document.getElementById("settingsBg").classList.add("open");
+  },
+  closeSettings() { document.getElementById("settingsBg").classList.remove("open"); },
+  saveSettings() {
+    Store.data.settings.openRouterKey = document.getElementById("orKey").value.trim();
+    Store.data.settings.model = document.getElementById("orModel").value.trim() || "anthropic/claude-3.5-sonnet";
+    Store.data.settings.apiUrl = document.getElementById("apiUrl").value.trim().replace(/\/$/, "");
+    Store.save(); this.closeSettings(); this.refreshAiStatus(); this.toast("Settings saved");
+  },
+  clearSettings() { Store.data.settings.openRouterKey = ""; Store.save(); this.closeSettings(); this.refreshAiStatus(); this.toast("Key cleared"); },
+  refreshAiStatus() {
+    const el = document.getElementById("aiStatus");
+    if (AI.hasKey()) { el.textContent = "◉ Live · OpenRouter"; el.style.borderColor = "var(--gold-border)"; el.style.color = "#9c7f2e"; }
+    else { el.textContent = "◍ Offline"; el.style.borderColor = "var(--line)"; el.style.color = "var(--ink)"; }
+  },
+  _attach: null,
+  openAttach(p) { this._attach = p; this.renderAttachItems(); document.getElementById("attachBg").classList.add("open"); },
+  closeAttach() { document.getElementById("attachBg").classList.remove("open"); },
+  renderAttachItems() {
+    const target = document.getElementById("attachTarget").value;
+    const map = {
+      track: Store.data.tracks.map(t => [t.id, t.title + " — " + t.artist]),
+      registration: Store.data.registrations.map(r => [r.id, r.bodyName + " · " + r.trackTitle]),
+      post: Store.data.posts.map(p => [p.id, p.author + ": " + p.body.slice(0, 30)]),
+      agent: Store.data.agentTasks.map(a => [a.id, a.title.slice(0, 34)]),
+    };
+    const items = map[target] || [];
+    const el = document.getElementById("attachItems");
+    el.innerHTML = items.length
+      ? `<div class="label" style="margin-bottom:6px">Item</div><select id="attachItem">${items.map(([id, l]) => `<option value="${id}">${Hub.esc(l)}</option>`).join("")}</select>`
+      : `<p class="muted" style="font-size:12px">Nothing here yet — create one in its zone first.</p>`;
+  },
+  confirmAttach() {
+    const target = document.getElementById("attachTarget").value;
+    const itemEl = document.getElementById("attachItem");
+    if (!itemEl) return this.toast("Nothing to attach to");
+    const p = this._attach;
+    const note = { id: uid("note"), kind: p.kind, text: p.text, target, targetId: itemEl.value, at: Date.now() };
+    Store.data.notes.unshift(note);
+    const coll = { track: "tracks", registration: "registrations", post: "posts", agent: "agentTasks" }[target];
+    const item = (Store.data[coll] || []).find(x => x.id === itemEl.value);
+    if (item) { item.notes = item.notes || []; item.notes.push(note.id); }
+    Store.save(); this.closeAttach(); this.toast("Attached ✓"); Recorder.renderNotes(); Agents.renderTasks();
+  },
+  esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); },
+  fmt(n) { return n >= 1000 ? (n / 1000).toFixed(1) + "K" : "" + n; },
+  seedColor(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h},32%,42%)`; },
+};
+
+/* ---------------- Home ---------------- */
+const Home = {
+  purchases: [
+    ["Sizwe D.", "Piano Sessions Vol. 2", "Sipho Mkhize", "Soweto", 180],
+    ["Ayanda K.", "Homecoming (Album)", "Nomusa Dlamini", "Gqeberha", 150],
+    ["Lerato M.", "Jozi Live — Front Row", "Bongani Nkosi", "Cape Town", 480],
+    ["Thabo N.", "Studio Tip", "Nomusa Dlamini", "Durban", 60],
+    ["Zanele P.", "Ubuntu Rising", "Thandiwe Cele", "Polokwane", 120],
+  ],
+  render() {
+    document.getElementById("ticker").innerHTML = this.purchases.map(([b, t, a, c, r]) =>
+      `<div class="item"><b>${Hub.esc(b)}</b> bought <b>${Hub.esc(t)}</b> · ${Hub.esc(a)} · ${c} · <span class="badge gold">R${r}</span></div>`).join("");
+    document.getElementById("featured").innerHTML = Store.data.tracks.map(t =>
+      `<div class="card row between"><div class="row" style="gap:12px"><div class="cover" style="width:46px;height:46px;background:${Hub.seedColor(t.artist)}">${Hub.esc(t.artist[0])}</div><div><b style="font-family:var(--display)">${Hub.esc(t.artist)}</b><div class="muted" style="font-size:12px">${Hub.esc(t.title)} · ${Hub.esc(t.genre)}</div></div></div><div class="muted" style="font-size:12px">▶ ${Hub.fmt(t.plays)}</div></div>`).join("");
+  },
+};
+
+/* ---------------- Studio: Web Audio engine ---------------- */
+const INSTRUMENTS = [
+  { id: "kick", name: "Kick", synth: "kick" }, { id: "snare", name: "Snare", synth: "snare" },
+  { id: "hat", name: "Hi-hat", synth: "hat" }, { id: "clap", name: "Clap", synth: "clap" },
+  { id: "log", name: "Log drum", synth: "log" }, { id: "bass", name: "Bass", synth: "bass" },
+  { id: "shkr", name: "Shaker", synth: "shaker" },
+];
+// piano-roll notes, high → low (C minor pentatonic across ~1.5 octaves)
+const NOTES = [
+  { n: "C5", f: 523.25 }, { n: "Bb4", f: 466.16 }, { n: "G4", f: 392.00 }, { n: "F4", f: 349.23 },
+  { n: "Eb4", f: 311.13 }, { n: "C4", f: 261.63 }, { n: "Bb3", f: 233.08 }, { n: "G3", f: 196.00 },
+];
+/** Encode MIDI variable-length quantity. */
+function midiVarLen(val) {
+  if (val < 0) val = 0;
+  const out = [val & 0x7F]; val >>= 7;
+  while (val > 0) { out.unshift((val & 0x7F) | 0x80); val >>= 7; }
+  return out;
+}
+
+const Studio = {
+  ctx: null, master: null, sum: null, comp: null, analyser: null,
+  delay: null, delaySend: null, fb: null, reverb: null, reverbSend: null,
+  bpm: 115, playing: false, curStep: 0, nextTime: 0, timer: null,
+  channels: {}, keysGain: null, _noise: null,
+  pattern: {}, melody: {},
+  state: { vol: {}, pan: {}, eq: {} },
+  fx: { reverb: { on: false, amt: 0.3 }, delay: { on: false, amt: 0.25 }, comp: { on: false } },
+
+  ensureCtx() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+    const c = this.ctx;
+    this.master = c.createGain(); this.master.gain.value = 0.8;
+    this.sum = c.createGain();
+    this.comp = c.createDynamicsCompressor();
+    this.analyser = c.createAnalyser();
+    // master → sum (dry) ; sum → comp → destination
+    this.master.connect(this.sum);
+    this.sum.connect(this.comp); this.comp.connect(this.analyser); this.analyser.connect(c.destination);
+    this.applyComp();
+    // Load Audacity-quality AudioWorklet processors asynchronously
+    if (c.audioWorklet) {
+      c.audioWorklet.addModule('worklets/processors.js').then(() => {
+        this._parameq   = new AudioWorkletNode(c, 'parametric-eq');
+        this._loudness  = new AudioWorkletNode(c, 'loudness-meter');
+        this._limiter   = new AudioWorkletNode(c, 'lookahead-limiter');
+        this._noisegate = new AudioWorkletNode(c, 'spectral-noise-gate');
+        // Rewire: sum → parameq → noisegate → comp → loudness → limiter → analyser → destination
+        this.sum.disconnect(this.comp);
+        this.analyser.disconnect(c.destination);
+        this.sum.connect(this._parameq);
+        this._parameq.connect(this._noisegate);
+        this._noisegate.connect(this.comp);
+        this.comp.connect(this._loudness);
+        this._loudness.connect(this._limiter);
+        this._limiter.connect(this.analyser);
+        this.analyser.connect(c.destination);
+        this._loudness.port.onmessage = ({ data }) => {
+          if (data.type !== 'lufs') return;
+          const el = document.getElementById('lufsDisplay');
+          if (el) el.textContent = data.momentary.toFixed(1) + ' LUFS';
+          const st = document.getElementById('lufsShortTerm');
+          if (st) st.textContent = 'Short: ' + data.shortTerm.toFixed(1);
+          const ig = document.getElementById('lufsIntegrated');
+          if (ig) ig.textContent = 'Integrated: ' + data.integrated.toFixed(1);
+        };
+        this._noisegate.port.onmessage = ({ data }) => {
+          if (data.type === 'profileReady') Hub.toast('Noise profile captured');
+        };
+        this._workletsReady = true;
+        Hub.toast('DSP engine ready');
+      }).catch(() => { /* AudioWorklet not available in this context */ });
+    }
+    // delay send
+    this.delay = c.createDelay(1.0); this.delay.delayTime.value = 60 / this.bpm / 2;
+    this.fb = c.createGain(); this.fb.gain.value = 0.35;
+    this.delaySend = c.createGain(); this.delaySend.gain.value = 0;
+    this.master.connect(this.delaySend); this.delaySend.connect(this.delay);
+    this.delay.connect(this.fb); this.fb.connect(this.delay); this.delay.connect(this.sum);
+    // reverb send (generated impulse)
+    this.reverb = c.createConvolver(); this.reverb.buffer = this.impulse(c, 1.8);
+    this.reverbSend = c.createGain(); this.reverbSend.gain.value = 0;
+    this.master.connect(this.reverbSend); this.reverbSend.connect(this.reverb); this.reverb.connect(this.sum);
+    // per-instrument channel chains: input(low)→mid→high→gain→pan→master
+    INSTRUMENTS.forEach(inst => {
+      const g = c.createGain(); g.gain.value = this.state.vol[inst.id] ?? 0.8;
+      const pan = c.createStereoPanner ? c.createStereoPanner() : null;
+      const low = c.createBiquadFilter(); low.type = "lowshelf"; low.frequency.value = 120;
+      const mid = c.createBiquadFilter(); mid.type = "peaking"; mid.frequency.value = 1000; mid.Q.value = 0.8;
+      const high = c.createBiquadFilter(); high.type = "highshelf"; high.frequency.value = 6000;
+      low.connect(mid); mid.connect(high); high.connect(g);
+      if (pan) { g.connect(pan); pan.connect(this.master); } else { g.connect(this.master); }
+      this.channels[inst.id] = { input: low, gain: g, pan, low, mid, high, mute: false, solo: false };
+      const e = this.state.eq[inst.id]; if (e) { low.gain.value = e.low; mid.gain.value = e.mid; high.gain.value = e.high; }
+      if (pan && this.state.pan[inst.id] != null) pan.pan.value = this.state.pan[inst.id];
+    });
+    this.keysGain = c.createGain(); this.keysGain.gain.value = 0.5; this.keysGain.connect(this.master);
+    this.applyFx();
+  },
+  impulse(ctx, sec) {
+    const rate = ctx.sampleRate, len = Math.floor(rate * sec), buf = ctx.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); }
+    return buf;
+  },
+  applyComp() { if (!this.comp) return; const on = this.fx.comp.on; this.comp.threshold.value = on ? -20 : 0; this.comp.ratio.value = on ? 4 : 1; this.comp.knee.value = 24; },
+  applyFx() {
+    if (this.delaySend) this.delaySend.gain.value = this.fx.delay.on ? this.fx.delay.amt : 0;
+    if (this.reverbSend) this.reverbSend.gain.value = this.fx.reverb.on ? this.fx.reverb.amt : 0;
+    this.applyComp();
+  },
+
+  initPattern() {
+    if (!Object.keys(this.pattern).length) INSTRUMENTS.forEach(i => this.pattern[i.id] = new Array(16).fill(false));
+    if (!Object.keys(this.melody).length) NOTES.forEach((_, ri) => this.melody[ri] = new Array(16).fill(false));
+  },
+  render() {
+    this.initPattern();
+    document.getElementById("seq").innerHTML = INSTRUMENTS.map(inst => {
+      const steps = this.pattern[inst.id].map((on, i) => `<div class="step ${on ? "on" : ""} ${i % 4 === 0 ? "beat" : ""}" data-i="${i}" data-inst="${inst.id}" onclick="Studio.toggleStep('${inst.id}',${i})"></div>`).join("");
+      return `<div class="seqrow"><div class="name"><span class="led" data-led="${inst.id}"></span>${inst.name}</div><div class="steps">${steps}</div></div>`;
+    }).join("");
+    document.getElementById("roll").innerHTML = NOTES.map((note, ri) => {
+      const steps = this.melody[ri].map((on, i) => `<div class="step mstep ${on ? "on" : ""} ${i % 4 === 0 ? "beat" : ""}" data-i="${i}" data-row="${ri}" onclick="Studio.toggleNote(${ri},${i})"></div>`).join("");
+      return `<div class="seqrow"><div class="name">${note.n}</div><div class="steps">${steps}</div></div>`;
+    }).join("");
+    document.getElementById("mixer").innerHTML = INSTRUMENTS.map(inst => {
+      const vol = Math.round((this.state.vol[inst.id] ?? 0.8) * 100), pan = Math.round((this.state.pan[inst.id] ?? 0) * 100);
+      const e = this.state.eq[inst.id] || { low: 0, mid: 0, high: 0 };
+      return `<div class="ch"><div class="top"><b>${inst.name}</b><div class="row" style="gap:6px"><button class="mini" onclick="Studio.toggleFlag('${inst.id}','mute',this)">M</button><button class="mini" onclick="Studio.toggleFlag('${inst.id}','solo',this)">S</button></div></div>
+        <div class="row" style="gap:10px; margin-top:8px"><div style="flex:1"><label class="knob"><span style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#8aa0b5">Vol</span></label><input type="range" min="0" max="100" value="${vol}" oninput="Studio.setVol('${inst.id}',this.value)"></div><div style="flex:1"><label class="knob"><span style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#8aa0b5">Pan</span></label><input type="range" min="-100" max="100" value="${pan}" oninput="Studio.setPan('${inst.id}',this.value)"></div></div>
+        <div class="knobs"><div class="knob"><label>Low</label><input type="range" min="-12" max="12" value="${e.low}" oninput="Studio.setEq('${inst.id}','low',this.value)"></div><div class="knob"><label>Mid</label><input type="range" min="-12" max="12" value="${e.mid}" oninput="Studio.setEq('${inst.id}','mid',this.value)"></div><div class="knob"><label>High</label><input type="range" min="-12" max="12" value="${e.high}" oninput="Studio.setEq('${inst.id}','high',this.value)"></div></div></div>`;
+    }).join("");
+    document.getElementById("fxrow").innerHTML = [
+      ["reverb", "Reverb"], ["delay", "Delay"], ["comp", "Comp"],
+    ].map(([id, name]) => {
+      const on = this.fx[id].on;
+      const amt = id === "comp" ? "" : `<input type="range" min="0" max="80" value="${Math.round(this.fx[id].amt * 100)}" oninput="Studio.setFx('${id}','amt',this.value)">`;
+      return `<div class="fxpill"><button class="mini ${on ? "on" : ""}" onclick="Studio.setFx('${id}','on',this)">${name}</button>${amt}</div>`;
+    }).join("");
+    document.getElementById("eqguide").innerHTML = [
+      ["Sub-bass 20–60 Hz", "feel it, don't hear it — kick &amp; bass fundamentals"],
+      ["Mud zone 200–400 Hz", "usually <code>cut</code> to clean the low-mids"],
+      ["Presence 2–4 kHz", "vocal &amp; piano clarity — <code>boost</code> gently"],
+      ["Air 10–12 kHz", "shimmer &amp; brilliance for a modern sheen"],
+    ].map(([a, b]) => `<div style="padding:4px 0"><b style="font-family:var(--display)">${a}</b> — <span class="muted">${b}</span></div>`).join("");
+  },
+
+  toggleStep(id, i) { this.pattern[id][i] = !this.pattern[id][i]; const el = document.querySelector(`.step[data-inst="${id}"][data-i="${i}"]`); el.classList.toggle("on", this.pattern[id][i]); if (this.pattern[id][i]) { this.ensureCtx(); this.voiceFor(id)(this.ctx, this.channels[id].input, this.ctx.currentTime); } },
+  toggleNote(ri, i) { this.melody[ri][i] = !this.melody[ri][i]; const el = document.querySelector(`.step.mstep[data-row="${ri}"][data-i="${i}"]`); el.classList.toggle("on", this.melody[ri][i]); if (this.melody[ri][i]) { this.ensureCtx(); this.vKeys(this.ctx, this.keysGain, this.ctx.currentTime, NOTES[ri].f); } },
+  toggleFlag(id, flag, btn) { this.ensureCtx(); const ch = this.channels[id]; ch[flag] = !ch[flag]; btn.classList.toggle("on", ch[flag]); this.applyMutes(); },
+  applyMutes() { const anySolo = INSTRUMENTS.some(i => this.channels[i.id]?.solo); INSTRUMENTS.forEach(i => { const ch = this.channels[i.id]; if (!ch) return; const on = anySolo ? ch.solo : !ch.mute; ch.gain.gain.value = on ? (this.state.vol[i.id] ?? 0.8) : 0; }); },
+  setVol(id, v) { this.state.vol[id] = v / 100; if (this.channels[id]) this.applyMutes(); },
+  setPan(id, v) { this.state.pan[id] = v / 100; if (this.channels[id]?.pan) this.channels[id].pan.pan.value = v / 100; },
+  setEq(id, band, v) { this.state.eq[id] = this.state.eq[id] || { low: 0, mid: 0, high: 0 }; this.state.eq[id][band] = +v; if (this.channels[id]) this.channels[id][band].gain.value = +v; },
+  setBpm(v) { this.bpm = +v; document.getElementById("bpmVal").textContent = v; if (this.delay) this.delay.delayTime.value = 60 / this.bpm / 2; },
+  setMaster(v) { this.ensureCtx(); this.master.gain.value = v / 100; },
+  setFx(id, prop, arg) {
+    if (prop === "on") { this.fx[id].on = !this.fx[id].on; arg.classList.toggle("on", this.fx[id].on); }
+    else { this.fx[id].amt = arg / 100; }
+    if (this.ctx) this.applyFx();
+  },
+
+  toggle() {
+    this.ensureCtx();
+    if (this.ctx.state === "suspended") this.ctx.resume();
+    this.playing = !this.playing;
+    const b = document.getElementById("playBtn");
+    b.classList.toggle("on", this.playing); b.textContent = this.playing ? "❚❚" : "▶";
+    document.getElementById("playLed").classList.toggle("on", this.playing);
+    if (this.playing) { this.curStep = 0; this.nextTime = this.ctx.currentTime + 0.06; this.scheduler(); }
+    else { clearTimeout(this.timer); this.clearPlayhead(); }
+  },
+  scheduler() {
+    if (!this.playing) return;
+    const stepDur = 60 / this.bpm / 4;
+    while (this.nextTime < this.ctx.currentTime + 0.1) {
+      const step = this.curStep, t = this.nextTime;
+      INSTRUMENTS.forEach(i => { if (this.pattern[i.id][step]) this.voiceFor(i.id)(this.ctx, this.channels[i.id].input, t); });
+      NOTES.forEach((note, ri) => { if (this.melody[ri][step]) this.vKeys(this.ctx, this.keysGain, t, note.f); });
+      this.drawPlayhead(step, t);
+      this.nextTime += stepDur; this.curStep = (this.curStep + 1) % 16;
+    }
+    this.timer = setTimeout(() => this.scheduler(), 25);
+  },
+  drawPlayhead(step, t) {
+    const delay = (t - this.ctx.currentTime) * 1000;
+    setTimeout(() => {
+      document.querySelectorAll(".step.playhead").forEach(e => e.classList.remove("playhead"));
+      document.querySelectorAll(`.step[data-i="${step}"]`).forEach(e => e.classList.add("playhead"));
+      INSTRUMENTS.forEach(i => { if (this.pattern[i.id][step]) { const l = document.querySelector(`[data-led="${i.id}"]`); if (l) { l.classList.add("on"); setTimeout(() => l.classList.remove("on"), 90); } } });
+    }, Math.max(0, delay));
+  },
+  clearPlayhead() { document.querySelectorAll(".step.playhead").forEach(e => e.classList.remove("playhead")); },
+
+  voiceFor(id) { const inst = INSTRUMENTS.find(i => i.id === id); const map = { kick: this.vKick, snare: this.vSnare, hat: this.vHat, clap: this.vClap, log: this.vLog, bass: this.vBass, shaker: this.vShaker }; return (map[inst.synth] || this.vKick).bind(this); },
+  env(g, t, a, d, peak) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); },
+  noiseBuf(ctx) { ctx = ctx || this.ctx; if (ctx === this.ctx && this._noise) return this._noise; const n = ctx.sampleRate; const buf = ctx.createBuffer(1, n, n); const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; if (ctx === this.ctx) this._noise = buf; return buf; },
+  vKick(ctx, dest, t) { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12); this.env(g, t, 0.005, 0.32, 1); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.4); },
+  vSnare(ctx, dest, t) { const n = ctx.createBufferSource(); n.buffer = this.noiseBuf(ctx); const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1200; const g = ctx.createGain(); this.env(g, t, 0.002, 0.18, 0.7); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.2); const o = ctx.createOscillator(), g2 = ctx.createGain(); o.type = "triangle"; o.frequency.value = 180; this.env(g2, t, 0.002, 0.1, 0.4); o.connect(g2); g2.connect(dest); o.start(t); o.stop(t + 0.12); },
+  vHat(ctx, dest, t) { const n = ctx.createBufferSource(); n.buffer = this.noiseBuf(ctx); const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 7000; const g = ctx.createGain(); this.env(g, t, 0.001, 0.05, 0.35); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.06); },
+  vClap(ctx, dest, t) { for (let k = 0; k < 3; k++) { const n = ctx.createBufferSource(); n.buffer = this.noiseBuf(ctx); const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1500; const g = ctx.createGain(); const tt = t + k * 0.012; this.env(g, tt, 0.001, 0.09, 0.5); n.connect(bp); bp.connect(g); g.connect(dest); n.start(tt); n.stop(tt + 0.12); } },
+  vLog(ctx, dest, t) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.18); this.env(g, t, 0.004, 0.34, 0.9); const o2 = ctx.createOscillator(), g2 = ctx.createGain(); o2.type = "square"; o2.frequency.setValueAtTime(400, t); o2.frequency.exponentialRampToValueAtTime(120, t + 0.05); this.env(g2, t, 0.001, 0.04, 0.15); o.connect(g); g.connect(dest); o2.connect(g2); g2.connect(dest); o.start(t); o.stop(t + 0.4); o2.start(t); o2.stop(t + 0.08); },
+  vBass(ctx, dest, t) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "triangle"; o.frequency.value = 55; this.env(g, t, 0.01, 0.3, 0.8); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.34); },
+  vShaker(ctx, dest, t) { const n = ctx.createBufferSource(); n.buffer = this.noiseBuf(ctx); const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 5000; const g = ctx.createGain(); this.env(g, t, 0.005, 0.06, 0.25); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t); n.stop(t + 0.08); },
+  vKeys(ctx, dest, t, freq) { const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(); o.type = "triangle"; o2.type = "sine"; o.frequency.value = freq; o2.frequency.value = freq; o2.detune.value = 6; lp.type = "lowpass"; lp.frequency.value = 2600; this.env(g, t, 0.012, 0.4, 0.6); o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(dest); o.start(t); o2.start(t); o.stop(t + 0.5); o2.stop(t + 0.5); },
+
+  loadPreset(name) {
+    this.initPattern();
+    if (name === "amapiano") {
+      const set = (arr) => { const a = new Array(16).fill(false); arr.forEach(i => a[i] = true); return a; };
+      this.pattern.kick = set([0, 4, 8, 12]); this.pattern.snare = set([4, 12]); this.pattern.hat = set([2, 6, 10, 14]);
+      this.pattern.shkr = set([1, 3, 5, 7, 9, 11, 13, 15]); this.pattern.log = set([6, 7, 10, 14, 15]);
+      this.pattern.bass = set([0, 8]); this.pattern.clap = set([12]);
+      // a soulful pentatonic riff
+      this.melody = {}; NOTES.forEach((_, ri) => this.melody[ri] = new Array(16).fill(false));
+      this.melody[5][0] = true; this.melody[3][2] = true; this.melody[2][4] = true; this.melody[4][6] = true;
+      this.melody[5][8] = true; this.melody[1][10] = true; this.melody[3][12] = true; this.melody[0][14] = true;
+      this.setBpm(115); document.getElementById("bpm").value = 115;
+    }
+    this.render(); Hub.toast("Amapiano preset loaded — hit play ▶");
+  },
+
+  /* ---- offline WAV bounce ---- */
+  async bounce() {
+    this.initPattern();
+    const bars = 2, stepDur = 60 / this.bpm / 4, rate = 44100;
+    const dur = stepDur * 16 * bars + 0.6;
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) { Hub.toast("Bounce not supported on this browser"); return; }
+    Hub.toast("Bouncing 2 bars…");
+    const off = new OAC(2, Math.ceil(dur * rate), rate);
+    const master = off.createGain(); master.gain.value = this.master ? this.master.gain.value : 0.8;
+    const comp = off.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    master.connect(comp); comp.connect(off.destination);
+    // light reverb tail for polish
+    const rev = off.createConvolver(); rev.buffer = this.impulse(off, 1.6);
+    const revSend = off.createGain(); revSend.gain.value = this.fx.reverb.on ? this.fx.reverb.amt : 0.12;
+    master.connect(revSend); revSend.connect(rev); rev.connect(comp);
+    const chans = {};
+    INSTRUMENTS.forEach(i => { const g = off.createGain(); const ch = this.channels[i.id]; const solo = INSTRUMENTS.some(x => this.channels[x.id]?.solo); const aud = ch ? (solo ? ch.solo : !ch.mute) : true; g.gain.value = aud ? (this.state.vol[i.id] ?? 0.8) : 0; g.connect(master); chans[i.id] = g; });
+    const keys = off.createGain(); keys.gain.value = 0.5; keys.connect(master);
+    for (let bar = 0; bar < bars; bar++) for (let s = 0; s < 16; s++) {
+      const t = (bar * 16 + s) * stepDur + 0.05;
+      INSTRUMENTS.forEach(i => { if (this.pattern[i.id][s]) this.voiceFor(i.id)(off, chans[i.id], t); });
+      NOTES.forEach((note, ri) => { if (this.melody[ri][s]) this.vKeys(off, keys, t, note.f); });
+    }
+    let rendered; try { rendered = await off.startRendering(); } catch (e) { Hub.toast("Bounce failed"); return; }
+    const wav = this.encodeWav(rendered);
+    const blob = new Blob([wav], { type: "audio/wav" });
+    const url = URL.createObjectURL(blob);
+    this._lastBounce = url;
+    const audio = document.getElementById("bounceOut"); audio.src = url; audio.style.display = "block";
+    const name = ((document.getElementById("beatTitle").value || "umhlabatea-beat").trim() || "umhlabatea-beat").replace(/[^\w-]+/g, "-").toLowerCase();
+    try { const a = document.createElement("a"); a.href = url; a.download = name + ".wav"; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
+    Hub.toast("Bounced ✓ playing below — download or long-press to save");
+  },
+  encodeWav(buffer) {
+    const numCh = buffer.numberOfChannels, len = buffer.length, rate = buffer.sampleRate;
+    const bytes = len * numCh * 2, out = new ArrayBuffer(44 + bytes), view = new DataView(out);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, "RIFF"); view.setUint32(4, 36 + bytes, true); ws(8, "WAVE"); ws(12, "fmt ");
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numCh, true);
+    view.setUint32(24, rate, true); view.setUint32(28, rate * numCh * 2, true); view.setUint16(32, numCh * 2, true);
+    view.setUint16(34, 16, true); ws(36, "data"); view.setUint32(40, bytes, true);
+    const chans = []; for (let c = 0; c < numCh; c++) chans.push(buffer.getChannelData(c));
+    let off = 44; for (let i = 0; i < len; i++) for (let c = 0; c < numCh; c++) { let s = Math.max(-1, Math.min(1, chans[c][i])); view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true); off += 2; }
+    return out;
+  },
+
+  saveTrack() {
+    const title = (document.getElementById("beatTitle").value || "").trim() || "Untitled Beat";
+    const active = INSTRUMENTS.filter(i => this.pattern[i.id]?.some(Boolean)).map(i => i.name);
+    const t = { id: uid("trk"), title, artist: "You", genre: "Amapiano", plays: 0, price: 120, bpm: this.bpm, elements: active, notes: [], audio: this._lastBounce || null };
+    Store.data.tracks.unshift(t); Store.save();
+    document.getElementById("beatTitle").value = "";
+    Home.render(); Rights.render();
+    Hub.toast(`"${title}" saved to your library ✓`);
+  },
+
+  /* ---- Audacity-inspired DSP controls ---- */
+  noiseLearnStart() {
+    this.ensureCtx();
+    if (!this._noisegate) { Hub.toast("DSP engine loading, try again in a moment"); return; }
+    this._noisegate.port.postMessage({ type: 'learnStart' });
+    Hub.toast("Learning noise profile... play for 1-2 s then click Apply Gate");
+  },
+  noiseLearnStop() {
+    if (!this._noisegate) { Hub.toast("DSP engine not ready"); return; }
+    this._noisegate.port.postMessage({ type: 'learnStop' });
+  },
+  noiseBypass() {
+    if (!this._noisegate) return;
+    this._noisegate.port.postMessage({ type: 'bypass' });
+    Hub.toast("Noise gate bypassed");
+  },
+
+  /** Import an audio file as a new multitrack take. */
+  async importSample(inputEl) {
+    const file = inputEl.files?.[0];
+    if (!file) return;
+    this.ensureCtx();
+    Hub.toast(`Importing ${file.name}...`);
+    try {
+      const arrayBuf = await file.arrayBuffer();
+      const audioBuf = await this.ctx.decodeAudioData(arrayBuf);
+      // Add to MultiTrack if it's open, otherwise store for next session
+      if (typeof MultiTrack !== 'undefined' && MultiTrack.ctx) {
+        MultiTrack.addImportedBuffer(audioBuf, file.name);
+        Hub.toast(`${file.name} imported into multitrack`);
+      } else {
+        this._importedBuffer = audioBuf;
+        this._importedName   = file.name;
+        Hub.toast(`${file.name} loaded. Open Multitrack Recorder to use it.`);
+      }
+    } catch (e) {
+      Hub.toast("Could not decode audio file");
+    }
+    inputEl.value = "";
+  },
+
+  /** Export step-sequencer pattern as a Standard MIDI File (Type 1). */
+  exportMidi() {
+    const ppq = 96;
+    const bpm = this.bpm || 120;
+    const stepTicks = ppq / 4; // 16th-note steps
+    const numSteps = 16;
+
+    const NOTE_MAP = {
+      kick: 36, snare: 38, hat: 42, clap: 39, log: 43, bass: 35, shkr: 46
+    };
+    const MELODY_BASE = 60; // middle C
+
+    const tracks = [];
+
+    // Tempo track
+    const uspb = Math.round(60000000 / bpm);
+    tracks.push([
+      0x00, 0xFF, 0x51, 0x03,
+      (uspb >> 16) & 0xFF, (uspb >> 8) & 0xFF, uspb & 0xFF,
+      0x00, 0xFF, 0x2F, 0x00
+    ]);
+
+    // Drum track (channel 10 = 0x09)
+    for (const [instId, note] of Object.entries(NOTE_MAP)) {
+      const pattern = this.pattern[instId];
+      if (!pattern?.some(Boolean)) continue;
+      const events = [];
+      let prevTick = 0;
+      for (let s = 0; s < numSteps; s++) {
+        if (!pattern[s]) continue;
+        const tick = s * stepTicks;
+        events.push(...midiVarLen(tick - prevTick), 0x99, note, 0x64);
+        events.push(...midiVarLen(stepTicks - 2), 0x89, note, 0x00);
+        prevTick = tick + stepTicks - 2;
+      }
+      events.push(0x00, 0xFF, 0x2F, 0x00);
+      tracks.push(events);
+    }
+
+    // Melody track (channel 1 = 0x00)
+    if (this.melody) {
+      const events = [];
+      let prevTick = 0;
+      const NOTES_FREQS = typeof NOTES !== 'undefined' ? NOTES : [];
+      for (let s = 0; s < numSteps; s++) {
+        for (let ri = 0; ri < NOTES_FREQS.length; ri++) {
+          if (!this.melody[ri]?.[s]) continue;
+          const tick = s * stepTicks;
+          const midiNote = MELODY_BASE + ri;
+          events.push(...midiVarLen(tick - prevTick), 0x90, midiNote, 0x64);
+          events.push(...midiVarLen(stepTicks - 2), 0x80, midiNote, 0x00);
+          prevTick = tick + stepTicks - 2;
+        }
+      }
+      events.push(0x00, 0xFF, 0x2F, 0x00);
+      if (events.length > 4) tracks.push(events);
+    }
+
+    // Build SMF binary
+    const header = [
+      0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+      0x00, 0x01,
+      (tracks.length >> 8) & 0xFF, tracks.length & 0xFF,
+      (ppq >> 8) & 0xFF, ppq & 0xFF
+    ];
+
+    const chunks = [header];
+    for (const trk of tracks) {
+      const data = new Uint8Array(trk);
+      chunks.push([
+        0x4D, 0x54, 0x72, 0x6B,
+        (data.length >> 24) & 0xFF, (data.length >> 16) & 0xFF,
+        (data.length >> 8) & 0xFF, data.length & 0xFF,
+        ...data
+      ]);
+    }
+
+    const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+    const midiBytes = new Uint8Array(totalLen);
+    let pos = 0;
+    for (const chunk of chunks) { midiBytes.set(chunk, pos); pos += chunk.length; }
+
+    const blob = new Blob([midiBytes], { type: "audio/midi" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = "pattern.mid"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    Hub.toast("MIDI file exported");
+  },
+
+  /** Normalize the last bounced audio to a target LUFS level (offline, approximate peak-to-LUFS). */
+  async normalizeToLufs(targetLufs) {
+    if (!this._lastBounce) { Hub.toast("Bounce a track first"); return; }
+    Hub.toast(`Normalizing to ${targetLufs} LUFS...`);
+    try {
+      const resp = await fetch(this._lastBounce);
+      const arrayBuf = await resp.arrayBuffer();
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const tmp = new AudioContext();
+      const audioBuf = await tmp.decodeAudioData(arrayBuf);
+      tmp.close();
+
+      // Compute RMS and estimate LUFS (K-weighted approximation via peak)
+      const ch = audioBuf.getChannelData(0);
+      let ms = 0;
+      for (let i = 0; i < ch.length; i++) ms += ch[i] * ch[i];
+      ms /= ch.length;
+      const currentLufs = 10 * Math.log10(Math.max(1e-10, ms)) - 0.691;
+      const gainDb = targetLufs - currentLufs;
+      const gainLin = Math.pow(10, gainDb / 20);
+
+      // Render with gain correction
+      const off = new OAC(2, audioBuf.length, audioBuf.sampleRate);
+      const src = off.createBufferSource(); src.buffer = audioBuf;
+      const g = off.createGain(); g.gain.value = Math.min(gainLin, 4.0); // cap at +12 dB
+      src.connect(g); g.connect(off.destination); src.start(0);
+      const rendered = await off.startRendering();
+      const wav = this.encodeWav(rendered);
+      const url = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+      const a = document.createElement("a"); a.href = url;
+      a.download = "normalized.wav"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      Hub.toast(`Normalized to ${targetLufs} LUFS (gain: ${gainDb.toFixed(1)} dB)`);
+    } catch (e) {
+      Hub.toast("Normalization failed");
+    }
+  },
+
+  /** Draw spectral view from AnalyserNode (called from rAF loop). */
+  _drawSpectrum() {
+    const canvas = document.getElementById("spectralView");
+    if (!canvas || !this.analyser) return;
+    const ctx2 = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    this.analyser.fftSize = 512;
+    const freqData = new Float32Array(this.analyser.frequencyBinCount);
+    this.analyser.getFloatFrequencyData(freqData);
+    ctx2.fillStyle = "#0d0c1e";
+    ctx2.fillRect(0, 0, W, H);
+    const bins = freqData.length;
+    const barW = W / bins;
+    for (let i = 0; i < bins; i++) {
+      const db   = Math.max(-96, freqData[i]);
+      const norm = (db + 96) / 96;
+      const h    = norm * H;
+      const hue  = 270 - norm * 120; // purple to green
+      ctx2.fillStyle = `hsl(${hue},70%,55%)`;
+      ctx2.fillRect(i * barW, H - h, Math.max(1, barW - 1), h);
+    }
+  },
+
+  /** Start continuous spectral view animation (called when Studio tab becomes visible). */
+  startSpectrum() {
+    if (this._spectrumRunning) return;
+    this._spectrumRunning = true;
+    const loop = () => {
+      if (!this._spectrumRunning) return;
+      this._drawSpectrum();
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  },
+  stopSpectrum() { this._spectrumRunning = false; },
+};
+
+/* ---------------- Player ---------------- */
+const Player = {
+  idx: 0, playing: false,
+  eps: Array.from({ length: 12 }, (_, i) => `EP.${String(i + 1).padStart(3, "0")} — B.A.Hz`),
+  render() { document.getElementById("queue").innerHTML = this.eps.map((e, i) => `<div class="qitem ${i === this.idx ? "on" : ""}" onclick="Player.select(${i})"><span>${e}</span><span>${i === this.idx && this.playing ? "▶" : "·"}</span></div>`).join(""); document.getElementById("tapeTitle").textContent = this.eps[this.idx]; },
+  select(i) { this.idx = i; this.render(); if (!this.playing) this.toggle(); },
+  prev() { this.idx = (this.idx + this.eps.length - 1) % this.eps.length; this.render(); },
+  next() { this.idx = (this.idx + 1) % this.eps.length; this.render(); },
+  toggle() { this.playing = !this.playing; document.getElementById("tapePlay").textContent = this.playing ? "❚❚" : "▶"; document.getElementById("tapePlay").classList.toggle("on", this.playing); document.getElementById("tapeState").textContent = this.playing ? "▶ PLAYING" : "■ STOPPED"; document.getElementById("reelL").classList.toggle("spin", this.playing); document.getElementById("reelR").classList.toggle("spin", this.playing); this.render(); },
+  stopReels() { if (this.playing) this.toggle(); },
+};
+
+/* ---------------- Recorder ---------------- */
+const Recorder = {
+  rec: null, chunks: [], recording: false, stream: null, recog: null, dictating: false, sttSupported: false, t0: 0, timerInt: null, minutes: null,
+  init() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.sttSupported = !!SR;
+    document.getElementById("sttNote").textContent = this.sttSupported ? "· editable" : "· type or paste (dictation not supported here)";
+    if (SR) { this.recog = new SR(); this.recog.continuous = true; this.recog.interimResults = true; this.recog.lang = "en-ZA"; this.recog.onresult = (e) => this.onResult(e); this.recog.onend = () => { if (this.dictating) { try { this.recog.start(); } catch (x) {} } }; this.recog.onerror = () => {}; }
+  },
+  fmtTime(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); },
+  startTimer() { this.t0 = Date.now(); this.timerInt = setInterval(() => document.getElementById("recTimer").textContent = this.fmtTime(Date.now() - this.t0), 500); },
+  stopTimer() { clearInterval(this.timerInt); },
+  async toggle() {
+    if (this.recording) return this.stop();
+    try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { Hub.toast("Mic permission needed to record"); return; }
+    this.chunks = [];
+    try { this.rec = new MediaRecorder(this.stream); } catch (e) { Hub.toast("Recording not supported here"); return; }
+    this.rec.ondataavailable = (ev) => { if (ev.data.size) this.chunks.push(ev.data); };
+    this.rec.onstop = () => { const blob = new Blob(this.chunks, { type: this.chunks[0]?.type || "audio/webm" }); const a = document.getElementById("audioOut"); a.src = URL.createObjectURL(blob); a.style.display = "block"; };
+    this.rec.start(); this.recording = true; this.startTimer();
+    document.getElementById("recDot").classList.add("live"); document.getElementById("recLabel").textContent = "Recording…"; document.getElementById("recBtn").textContent = "■ Stop";
+    if (this.sttSupported && !this.dictating) this.toggleDictation();
+  },
+  stop() {
+    if (this.rec && this.rec.state !== "inactive") this.rec.stop();
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    this.recording = false; this.stopTimer();
+    document.getElementById("recDot").classList.remove("live"); document.getElementById("recLabel").textContent = "Saved"; document.getElementById("recBtn").textContent = "● Start recording";
+    if (this.dictating) this.toggleDictation();
+  },
+  toggleDictation() {
+    if (!this.sttSupported) { Hub.toast("Type in the transcript box — dictation isn't supported here"); document.getElementById("transcript").focus(); return; }
+    this.dictating = !this.dictating;
+    const b = document.getElementById("dictBtn"); b.classList.toggle("gold", this.dictating); b.textContent = this.dictating ? "🎤 Listening…" : "🎤 Live dictation";
+    if (this.dictating) { try { this.recog.start(); } catch (x) {} } else { try { this.recog.stop(); } catch (x) {} }
+  },
+  onResult(e) { const tr = document.getElementById("transcript"); let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) tr.dataset.final = (tr.dataset.final || "") + r[0].transcript + " "; else interim += r[0].transcript; } tr.innerHTML = Hub.esc(tr.dataset.final || "") + `<span class="interim">${Hub.esc(interim)}</span>`; tr.scrollTop = tr.scrollHeight; },
+  transcriptText() { const tr = document.getElementById("transcript"); return (tr.dataset.final || tr.innerText || "").replace(/\s+/g, " ").trim(); },
+  async makeMinutes() {
+    const text = this.transcriptText();
+    if (text.length < 12) { Hub.toast("Add a bit more transcript first"); return; }
+    Hub.toast(AI.hasKey() ? "Generating minutes via OpenRouter…" : "Generating minutes (offline)…");
+    let md = null;
+    if (AI.hasKey()) md = await AI.chat("You are a meeting-minutes assistant for a music studio. Given a raw transcript, reply in compact markdown with exactly these sections: '## Summary' (2-3 sentences), '## Decisions' (bullet list), '## Action items' (bullet list, prefix each with an owner if named).", text);
+    const parsed = md ? this.parseMd(md) : this.localMinutes(text);
+    this.minutes = { ...parsed, src: md ? "OpenRouter" : "Offline", text };
+    this.renderMinutes();
+  },
+  parseMd(md) { const grab = (h) => { const m = md.match(new RegExp("##\\s*" + h + "([\\s\\S]*?)(?=\\n##|$)", "i")); return m ? m[1].trim() : ""; }; const bul = (s) => s.split(/\n/).map(l => l.replace(/^[-*\d.\s]+/, "").trim()).filter(Boolean); return { summary: grab("Summary").replace(/^[-*\s]+/, ""), decisions: bul(grab("Decisions")), actions: bul(grab("Action items") || grab("Actions")) }; },
+  localMinutes(text) { const sents = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 4); const summary = sents.slice(0, 2).join(" ") || text.slice(0, 160); const decisions = sents.filter(s => /\b(decid|agree|will|going to|final|approv)\b/i.test(s)).slice(0, 5); const actions = sents.filter(s => /\b(need to|action|todo|to-do|follow up|send|book|record|mix|master|register|upload|call|email|promot|schedule)\b/i.test(s)).slice(0, 6); return { summary, decisions: decisions.length ? decisions : ["—"], actions: actions.length ? actions : ["—"] }; },
+  renderMinutes() {
+    const m = this.minutes; if (!m) return;
+    document.getElementById("minutesCard").style.display = "block";
+    const src = document.getElementById("minutesSrc"); src.textContent = m.src; src.className = "badge " + (m.src === "OpenRouter" ? "ok" : "mut");
+    const li = (a) => a.map(x => `<li>${Hub.esc(x)}</li>`).join("");
+    document.getElementById("minutesBody").innerHTML = `<h4>Summary</h4><div>${Hub.esc(m.summary)}</div><h4>Decisions</h4><ul>${li(m.decisions)}</ul><h4>Action items</h4><ul>${li(m.actions)}</ul>`;
+    document.getElementById("minutesCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  },
+  copyMinutes() { const m = this.minutes; if (!m) return; navigator.clipboard?.writeText(`MEETING MINUTES\n\nSummary\n${m.summary}\n\nDecisions\n- ${m.decisions.join("\n- ")}\n\nAction items\n- ${m.actions.join("\n- ")}`); Hub.toast("Minutes copied"); },
+  async createTasks() {
+    const m = this.minutes; if (!m) { Hub.toast("Generate minutes first"); return; }
+    const items = m.actions.filter(a => a && a !== "—");
+    if (!items.length) { Hub.toast("No action items to turn into tasks"); return; }
+    let synced = 0;
+    for (const title of items) {
+      const agent = routeAgent(title);
+      const task = { id: uid("task"), agent, title, detail: "From meeting minutes · " + m.src, source: "recorder", status: "open", createdAt: new Date().toISOString() };
+      Store.data.agentTasks.unshift(task);
+      const base = (Store.data.settings.apiUrl || "").trim();
+      if (base) { try { const r = await fetch(base + "/api/agents/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, agent, detail: task.detail, source: "recorder" }) }); if (r.ok) synced++; } catch (e) {} }
+    }
+    Store.save(); Agents.renderTasks();
+    Hub.toast(`${items.length} task(s) created${synced ? ` · ${synced} synced to API` : ""} → Agents`);
+    Hub.go("agents");
+  },
+  attachPrompt(kind) {
+    let text, k;
+    if (kind === "minutes" && this.minutes) { k = "minutes"; text = `Summary: ${this.minutes.summary} | Actions: ${this.minutes.actions.join("; ")}`; }
+    else { k = "transcript"; text = this.transcriptText(); }
+    if (!text || text.length < 4) { Hub.toast("Nothing to attach yet"); return; }
+    Hub.openAttach({ kind: k, text });
+  },
+  renderNotes() {
+    const list = document.getElementById("notesList");
+    if (!Store.data.notes.length) { list.innerHTML = `<p class="muted" style="font-size:12px">No notes yet. Record something and tap “Attach to…”.</p>`; return; }
+    const labelFor = (n) => { const coll = { track: "tracks", registration: "registrations", post: "posts", agent: "agentTasks" }[n.target]; const item = (Store.data[coll] || []).find(x => x.id === n.targetId); const name = item ? (item.title || item.bodyName || item.body || n.targetId) : n.targetId; return `${n.target} · ${Hub.esc(String(name).slice(0, 26))}`; };
+    list.innerHTML = Store.data.notes.slice(0, 8).map(n => `<div style="padding:9px 0; border-bottom:1px dashed var(--line)"><div class="row between"><span class="badge ${n.kind === "minutes" ? "gold" : "mut"}">${n.kind}</span><span class="muted" style="font-size:11px">→ ${labelFor(n)}</span></div><div style="font-size:12px; margin-top:4px">${Hub.esc(n.text.slice(0, 120))}${n.text.length > 120 ? "…" : ""}</div></div>`).join("");
+  },
+};
+
+/* ---------------- Agents ---------------- */
+const AGENTS = [
+  { id: "crm", ico: "🤝", name: "CRM agent", desc: "Identifies hot prospects and nurtures fans.", action: "Find superfans" },
+  { id: "seo", ico: "🔎", name: "SEO / AEO agent", desc: "Optimises metadata, tags and descriptions.", action: "Optimise a track" },
+  { id: "marketing", ico: "📣", name: "Marketing agent", desc: "Creates campaigns and schedules posts.", action: "Draft a campaign" },
+  { id: "mixing", ico: "🎚", name: "Mixing agent", desc: "Studio-grade mix & master guidance.", action: "Mix checklist" },
+  { id: "visual", ico: "🖼", name: "Visual agent", desc: "Upscales artwork to 4K, generates art.", action: "Queue artwork" },
+  { id: "legal", ico: "⚖️", name: "Legal agent", desc: "SAMRO/CAPASSO registration & contracts.", action: "Contract template" },
+];
+const AGENT_NAMES = { crm: "CRM", seo: "SEO / AEO", marketing: "Marketing", mixing: "Mix & master", visual: "Visuals", legal: "Rights & legal" };
+const Agents = {
+  render() {
+    document.getElementById("agents").innerHTML = AGENTS.map(a => `<div class="card stack"><div class="row between"><div class="row" style="gap:10px"><div class="ico" style="font-size:22px">${a.ico}</div><div><b style="font-family:var(--display)">${a.name}</b><div class="muted" style="font-size:12px">${a.desc}</div></div></div><span class="badge ok">active</span></div><button class="btn ghost sm" style="width:auto" onclick="Agents.run('${a.id}')">${a.action}</button><div id="agentOut_${a.id}"></div></div>`).join("");
+  },
+  renderTasks() {
+    const tasks = Store.data.agentTasks || [];
+    const open = tasks.filter(t => t.status !== "done");
+    document.getElementById("taskCount").textContent = open.length + " open";
+    const list = document.getElementById("taskList");
+    if (!tasks.length) { list.innerHTML = `<p class="muted" style="font-size:12px">No tasks yet. Generate meeting minutes in the recorder, then “Create agent tasks”.</p>`; return; }
+    list.innerHTML = tasks.slice(0, 12).map(t => `<div class="task ${t.status === "done" ? "done" : ""}"><div style="flex:1"><div class="ttitle" style="font-size:13px">${Hub.esc(t.title)}</div><div class="row" style="gap:6px; margin-top:4px"><span class="badge gold">${AGENT_NAMES[t.agent] || t.agent}</span><span class="muted" style="font-size:11px">· ${t.source}</span></div></div>${t.status !== "done" ? `<button class="mini" style="background:var(--gold-dim); color:#9c7f2e" onclick="Agents.done('${t.id}')">Done</button>` : `<span class="badge ok">done</span>`}</div>`).join("");
+  },
+  done(id) { const t = Store.data.agentTasks.find(x => x.id === id); if (t) { t.status = "done"; Store.save(); this.renderTasks(); } },
+  async run(id) {
+    const out = document.getElementById("agentOut_" + id);
+    const box = (lines, tag) => `<div class="card" style="margin-top:8px; background:var(--bone-dim)">${tag ? `<div class="label" style="margin-bottom:6px">${tag}</div>` : ""}${lines.map(l => `<div style="font-size:12px; padding:2px 0">· ${Hub.esc(l)}</div>`).join("")}</div>`;
+    if (id === "mixing") { out.innerHTML = box(["Gain-stage: peaks at −10 to −6 dB", "Cut the 200–400 Hz mud zone", "Leave −6 dB headroom on the master", "Reference against a −14 LUFS track", "High-pass everything that isn't sub"]); this.log("mixing", "Mix checklist"); return; }
+    if (id === "legal") { out.innerHTML = box(["Producer Agreement — work-for-hire", "Splits: Producer __% / Artist __%", "Publishing: SAMRO registration on release", "Master rights: CAPASSO mechanical", "Governing law: Republic of South Africa"], "Contract template"); this.log("legal", "Contract template"); return; }
+    if (id === "seo") { const t = Store.data.tracks[0]; const kw = [t.genre, "South Africa", "amapiano", t.artist, "new music", "stream"]; out.innerHTML = box([`Title: ${t.title} — ${t.artist} | ${t.genre}`, `Keywords: ${kw.join(", ")}`, `Voice search: “play ${t.title} by ${t.artist}”`], "SEO / AEO"); this.log("seo", "Optimise: " + t.title); return; }
+    const titles = { crm: "Segment top 100 fans", marketing: "2-week launch campaign", visual: "4K album art render" };
+    this.log(id, titles[id] || "Task"); out.innerHTML = box([`Task queued: ${titles[id] || "working"}`, "Status: running", "You'll be notified on completion"], "Queued");
+  },
+  log(agent, title) { Store.data.agentTasks.unshift({ id: uid("task"), agent, title, detail: "Run from Agents", source: "agent", status: "open", createdAt: new Date().toISOString() }); Store.save(); this.renderTasks(); Hub.toast((AGENT_NAMES[agent] || agent) + ": " + title); },
+};
+
+/* ---------------- Rights ---------------- */
+const BODIES = [
+  { id: "samro", name: "SAMRO", right: "Performing rights (composers & authors)" },
+  { id: "capasso", name: "CAPASSO", right: "Mechanical rights (reproduction)" },
+  { id: "risa", name: "RISA", right: "Recording industry / ISRC" },
+];
+const STATES = ["draft", "prepared", "submitted", "registered"];
+const Rights = {
+  render() {
+    document.getElementById("regTrack").innerHTML = Store.data.tracks.map(t => `<option value="${t.id}">${Hub.esc(t.title)} — ${Hub.esc(t.artist)}</option>`).join("");
+    document.getElementById("bodies").innerHTML = BODIES.map(b => `<div class="card row between"><div><b style="font-family:var(--display)">${b.name}</b><div class="muted" style="font-size:12px">${b.right}</div></div><button class="btn ghost sm" style="width:auto" onclick="Rights.prepare('${b.id}')">Prepare</button></div>`).join("");
+    const regs = Store.data.registrations;
+    document.getElementById("regs").innerHTML = regs.length ? regs.map(r => this.card(r)).join("") : `<p class="muted" style="font-size:12px">No registrations yet. Prepare one above.</p>`;
+  },
+  card(r) {
+    const idx = STATES.indexOf(r.state);
+    const track = STATES.map((s, i) => `<span class="led ${i <= idx ? "on" : ""}" style="margin-right:4px"></span>`).join("");
+    return `<div class="card stack"><div class="row between"><b style="font-family:var(--display)">${r.bodyName}</b><span class="badge ${r.state === "registered" ? "ok" : "mut"}">${r.state}</span></div><div class="muted" style="font-size:12px">${Hub.esc(r.trackTitle)}${r.isrc ? " · ISRC " + r.isrc : ""}</div><div class="row">${track}</div>${(r.notes || []).length ? `<div class="muted" style="font-size:11px">🔗 ${r.notes.length} note(s) attached</div>` : ""}${r.state !== "registered" ? `<button class="btn sm" style="width:auto" onclick="Rights.advance('${r.id}')">Advance → ${STATES[idx + 1]}</button>` : `<span class="badge ok">✓ Registered</span>`}</div>`;
+  },
+  prepare(bodyId) {
+    const t = Store.data.tracks.find(x => x.id === document.getElementById("regTrack").value); if (!t) return;
+    const body = BODIES.find(b => b.id === bodyId);
+    const reg = { id: uid("reg"), bodyId, bodyName: body.name, trackTitle: t.title, state: "prepared", isrc: bodyId === "risa" ? "ZA-U01-26-" + String(Math.floor(Math.random() * 90000) + 10000) : null, notes: [] };
+    Store.data.registrations.unshift(reg); Store.save(); this.render(); Hub.toast(`${body.name} prepared for “${t.title}”`);
+  },
+  advance(id) { const r = Store.data.registrations.find(x => x.id === id); if (!r) return; const i = STATES.indexOf(r.state); if (i < STATES.length - 1) r.state = STATES[i + 1]; Store.save(); this.render(); Hub.toast(`${r.bodyName} → ${r.state}`); },
+};
+
+/* ---------------- Pricing ---------------- */
+const TIERS = [
+  { name: "Starter", price: 0, tagline: "For emerging artists getting started.", features: ["Upload up to 10 tracks", "Basic distribution", "80/20 revenue split", "Community support"], cta: "Get started" },
+  { name: "Pro Artist", price: 299, tagline: "For serious artists ready to grow.", features: ["Unlimited uploads", "All 6 AI agents", "48-hour payouts", "SAMRO/CAPASSO automation", "AI mixing & mastering"], popular: true, cta: "Start Pro trial" },
+  { name: "Label", price: 999, tagline: "For labels managing multiple artists.", features: ["Everything in Pro", "Up to 20 artist accounts", "White-label options", "Dedicated manager", "API access"], cta: "Contact sales" },
+];
+const Pricing = {
+  render() {
+    document.getElementById("tiers").innerHTML = TIERS.map(t => `<div class="card stack" style="${t.popular ? "border-color:var(--gold-border)" : ""}"><div class="row between"><b style="font-family:var(--display); font-size:16px">${t.name}</b>${t.popular ? `<span class="badge gold">Most popular</span>` : ""}</div><div class="muted" style="font-size:12px">${t.tagline}</div><div class="row" style="align-items:baseline; gap:4px"><span class="display" style="font-size:30px">${t.price === 0 ? "Free" : "R" + t.price}</span>${t.price ? `<span class="muted">/mo</span>` : ""}</div><div class="divider" style="margin:6px 0"></div>${t.features.map(f => `<div class="row" style="gap:8px"><span style="color:var(--gold)">✓</span><span>${f}</span></div>`).join("")}<button class="btn ${t.popular ? "gold" : "ghost"}" onclick="Hub.toast('${t.name}: secure checkout opens in live mode (Stripe / PayFast).')">${t.cta}</button></div>`).join("");
+  },
+};
+
+/* ---------------- Live Collab (OpenScreen-inspired) ---------------- */
+const Collab = {
+  channel: null, roomId: null,
+  peerId: uid("peer"), peerName: null,
+  peers: {}, heartbeatTimer: null, pruneTimer: null,
+  screenStream: null, webcamStream: null,
+  rec: null, recChunks: [], _compositing: false,
+  tool: "pen", color: "#C9A84C", lw: 3,
+  _canvasReady: false,
+
+  get name() { return this.peerName || ("Artist·" + this.peerId.slice(-4)); },
+
+  render() {
+    if (!this._canvasReady) { this._setupCanvas(); this._canvasReady = true; }
+    this._resizeCanvas();
+  },
+
+  // ── Room management ──
+  createRoom() {
+    const code = (document.getElementById("col-room").value || "").trim() || ("room-" + Math.random().toString(36).slice(2, 7));
+    document.getElementById("col-room").value = code;
+    this._connect(code);
+    Hub.toast('Room "' + code + '" created — share the code with collaborators');
+  },
+
+  joinRoom() {
+    const code = (document.getElementById("col-room").value || "").trim();
+    if (!code) { Hub.toast("Enter a room code first"); return; }
+    this._connect(code); Hub.toast('Joined "' + code + '"');
+  },
+
+  leaveRoom() {
+    if (this.channel) { this._broadcast({ type: "leave", id: this.peerId }); this.channel.close(); this.channel = null; }
+    clearInterval(this.heartbeatTimer); clearInterval(this.pruneTimer);
+    this.peers = {}; this.roomId = null;
+    document.getElementById("col-leaveBtn").style.display = "none";
+    this._renderPeers(); Hub.toast("Left room");
+  },
+
+  _connect(code) {
+    if (this.channel) { this._broadcast({ type: "leave", id: this.peerId }); this.channel.close(); }
+    clearInterval(this.heartbeatTimer); clearInterval(this.pruneTimer);
+    this.roomId = code;
+    try { this.channel = new BroadcastChannel("umhlabatea.collab." + code); }
+    catch (e) { Hub.toast("BroadcastChannel not supported here"); return; }
+    this.channel.onmessage = ev => this._onMsg(ev.data);
+    this.peers = {}; this.peers[this.peerId] = { name: this.name, ts: Date.now() };
+    this._broadcast({ type: "join", id: this.peerId, name: this.name });
+    this.heartbeatTimer = setInterval(() => this._broadcast({ type: "hb", id: this.peerId, name: this.name }), 5000);
+    this.pruneTimer = setInterval(() => this._prunePeers(), 13000);
+    document.getElementById("col-leaveBtn").style.display = "";
+    this._renderPeers();
+    this._appendChat({ who: "System", text: '"' + code + '"', sys: true });
+  },
+
+  _broadcast(msg) { if (this.channel) try { this.channel.postMessage(msg); } catch (e) {} },
+
+  _onMsg(msg) {
+    const { type, id, name } = msg;
+    if (id === this.peerId) return;
+    if (type === "join" || type === "hb") {
+      const isNew = !this.peers[id];
+      this.peers[id] = { name: name || id, ts: Date.now() };
+      if (type === "join") {
+        this._appendChat({ who: "System", text: (name || id) + " joined", sys: true });
+        this._broadcast({ type: "hb", id: this.peerId, name: this.name });
+      }
+      this._renderPeers();
+    } else if (type === "leave") {
+      const who = (this.peers[id] || {}).name || id;
+      delete this.peers[id]; this._renderPeers();
+      this._appendChat({ who: "System", text: who + " left", sys: true });
+    } else if (type === "chat") {
+      this._appendChat({ who: msg.name || id, text: msg.text });
+    } else if (type === "stroke") {
+      this._paintStroke(msg.pts, msg.color, msg.tool, msg.lw);
+    } else if (type === "arrow") {
+      this._paintArrow(msg.x1, msg.y1, msg.x2, msg.y2, msg.color, msg.lw);
+    } else if (type === "clear") {
+      const cv = document.getElementById("col-canvas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    }
+  },
+
+  _prunePeers() {
+    const now = Date.now();
+    for (const [id, p] of Object.entries(this.peers)) {
+      if (id !== this.peerId && now - p.ts > 14000) delete this.peers[id];
+    }
+    this._renderPeers();
+  },
+
+  _renderPeers() {
+    const el = document.getElementById("col-peers"); if (!el) return;
+    const ids = Object.keys(this.peers);
+    el.innerHTML = !this.roomId
+      ? `<span style="font-family:var(--mono);font-size:11px;color:#4a6076">Not in a room.</span>`
+      : ids.map(id => `<span class="peer-pill">${Hub.esc(this.peers[id].name)}</span>`).join(" ") +
+        ` <span style="font-family:var(--mono);font-size:10px;color:#4a6076;margin-left:4px">· ${Hub.esc(this.roomId)}</span>`;
+  },
+
+  _appendChat({ who, text, sys = false }) {
+    const el = document.getElementById("col-chat"); if (!el) return;
+    const ph = el.querySelector("p"); if (ph) ph.remove();
+    const d = document.createElement("div"); d.className = "col-chat-msg";
+    d.innerHTML = `<div class="who">${Hub.esc(who)}</div><div style="color:${sys ? "#4a6076" : "#e9eef3"}">${Hub.esc(text)}</div>`;
+    el.appendChild(d); el.scrollTop = el.scrollHeight;
+  },
+
+  sendChat() {
+    if (!this.roomId) { Hub.toast("Join a room first"); return; }
+    const inp = document.getElementById("col-msg"); if (!inp) return;
+    const text = inp.value.trim(); if (!text) return; inp.value = "";
+    this._appendChat({ who: this.name, text });
+    this._broadcast({ type: "chat", id: this.peerId, name: this.name, text });
+  },
+
+  // ── Screen capture (OpenScreen: getDisplayMedia) ──
+  async toggleScreen() {
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(t => t.stop()); this.screenStream = null;
+      document.getElementById("col-screen").srcObject = null;
+      document.getElementById("col-idle").style.display = "flex";
+      document.getElementById("col-canvas").style.display = "none";
+      document.getElementById("col-screenBtn").classList.remove("on");
+      return;
+    }
+    try {
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      document.getElementById("col-screen").srcObject = this.screenStream;
+      document.getElementById("col-idle").style.display = "none";
+      document.getElementById("col-canvas").style.display = "block";
+      document.getElementById("col-screenBtn").classList.add("on");
+      this._resizeCanvas();
+      this.screenStream.getVideoTracks()[0].addEventListener("ended", () => this.toggleScreen());
+    } catch (e) { Hub.toast("Screen share cancelled"); }
+  },
+
+  // ── Webcam pip (OpenScreen: webcam overlay) ──
+  async toggleWebcam() {
+    const vid = document.getElementById("col-webcam");
+    if (this.webcamStream) {
+      this.webcamStream.getTracks().forEach(t => t.stop()); this.webcamStream = null;
+      vid.srcObject = null; vid.style.display = "none";
+      document.getElementById("col-camBtn").classList.remove("on"); return;
+    }
+    try {
+      this.webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      vid.srcObject = this.webcamStream; vid.style.display = "block";
+      document.getElementById("col-camBtn").classList.add("on");
+    } catch (e) { Hub.toast("Webcam access denied"); }
+  },
+
+  // ── Canvas annotation (OpenScreen: AnnotationOverlay) ──
+  _resizeCanvas() {
+    const preview = document.getElementById("col-preview"), cv = document.getElementById("col-canvas");
+    if (!cv || !preview) return;
+    cv.width = preview.offsetWidth || 600; cv.height = preview.offsetHeight || 337;
+  },
+
+  setTool(t) {
+    this.tool = t;
+    ["pen", "hl", "arrow", "erase"].forEach(id => {
+      const b = document.getElementById("col-" + id + "Btn"); if (b) b.classList.remove("on");
+    });
+    const map = { pen: "col-penBtn", highlight: "col-hlBtn", arrow: "col-arrowBtn", erase: "col-eraseBtn" };
+    const btn = document.getElementById(map[t]); if (btn) btn.classList.add("on");
+    const cv = document.getElementById("col-canvas");
+    if (cv) cv.style.cursor = t === "erase" ? "cell" : "crosshair";
+  },
+
+  setColor(c, el) {
+    this.color = c;
+    document.querySelectorAll(".col-swatch").forEach(s => s.classList.remove("active"));
+    if (el) el.classList.add("active");
+  },
+
+  clearCanvas() {
+    const cv = document.getElementById("col-canvas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    this._broadcast({ type: "clear", id: this.peerId });
+  },
+
+  _paintStroke(pts, color, tool, lw) {
+    const cv = document.getElementById("col-canvas"); if (!cv || !pts || pts.length < 2) return;
+    const ctx = cv.getContext("2d"); ctx.save();
+    if (tool === "erase") { ctx.globalCompositeOperation = "destination-out"; ctx.lineWidth = lw * 5; ctx.strokeStyle = "rgba(0,0,0,1)"; }
+    else if (tool === "highlight") { ctx.globalAlpha = 0.32; ctx.lineWidth = lw * 8; ctx.strokeStyle = color; }
+    else { ctx.lineWidth = lw; ctx.strokeStyle = color; }
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke(); ctx.restore();
+  },
+
+  _paintArrow(x1, y1, x2, y2, color, lw) {
+    const cv = document.getElementById("col-canvas"); if (!cv) return;
+    const ctx = cv.getContext("2d"); ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const angle = Math.atan2(y2 - y1, x2 - x1), len = 14;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - len * Math.cos(angle - Math.PI / 6), y2 - len * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(x2 - len * Math.cos(angle + Math.PI / 6), y2 - len * Math.sin(angle + Math.PI / 6));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  },
+
+  _setupCanvas() {
+    const cv = document.getElementById("col-canvas"); if (!cv) return;
+    let pts = [], down = false, arrowStart = null;
+    const pos = ev => {
+      const r = cv.getBoundingClientRect(), src = ev.touches ? ev.touches[0] : ev;
+      return [src.clientX - r.left, src.clientY - r.top];
+    };
+    const onDown = ev => {
+      if (ev.button !== undefined && ev.button !== 0) return;
+      ev.preventDefault(); down = true;
+      const p = pos(ev);
+      if (this.tool === "arrow") { arrowStart = p; }
+      else { pts = [p]; }
+    };
+    const onMove = ev => {
+      if (!down) return; ev.preventDefault();
+      const p = pos(ev);
+      if (this.tool === "arrow") {
+        if (!arrowStart) return;
+        this._resizeCanvas(); // redraw everything (only clearing arrow preview — simpler: just paint over)
+        this._paintArrow(arrowStart[0], arrowStart[1], p[0], p[1], this.color, this.lw);
+      } else {
+        pts.push(p);
+        this._paintStroke(pts.slice(-2), this.color, this.tool, this.lw);
+      }
+    };
+    const onUp = ev => {
+      if (!down) return; down = false;
+      if (this.tool === "arrow" && arrowStart) {
+        const p = pos(ev);
+        this._paintArrow(arrowStart[0], arrowStart[1], p[0], p[1], this.color, this.lw);
+        this._broadcast({ type: "arrow", x1: arrowStart[0], y1: arrowStart[1], x2: p[0], y2: p[1], color: this.color, lw: this.lw, id: this.peerId });
+        arrowStart = null;
+      } else if (pts.length > 1) {
+        this._broadcast({ type: "stroke", pts, color: this.color, tool: this.tool, lw: this.lw, id: this.peerId });
+      }
+      pts = [];
+    };
+    cv.addEventListener("mousedown", onDown); cv.addEventListener("mousemove", onMove);
+    cv.addEventListener("mouseup", onUp); cv.addEventListener("mouseleave", onUp);
+    cv.addEventListener("touchstart", onDown, { passive: false });
+    cv.addEventListener("touchmove", onMove, { passive: false });
+    cv.addEventListener("touchend", onUp);
+    // Activate pen tool by default
+    this.setTool("pen");
+  },
+
+  // ── Session recording (OpenScreen: composite + export) ──
+  toggleRecord() {
+    if (this.rec && this.rec.state === "recording") { this.rec.stop(); return; }
+    if (!this.screenStream) { Hub.toast("Share your screen first to record"); return; }
+    const cv = document.getElementById("col-canvas");
+    const screenVid = document.getElementById("col-screen");
+    const W = (cv && cv.width) || 800, H = (cv && cv.height) || 450;
+    // Composite: screen video + annotation canvas → offscreen canvas stream
+    const off = Object.assign(document.createElement("canvas"), { width: W, height: H });
+    const offCtx = off.getContext("2d");
+    this._compositing = true;
+    const paint = () => {
+      if (!this._compositing) return;
+      offCtx.clearRect(0, 0, W, H);
+      if (screenVid.readyState >= 2) offCtx.drawImage(screenVid, 0, 0, W, H);
+      if (cv) offCtx.drawImage(cv, 0, 0, W, H);
+      requestAnimationFrame(paint);
+    };
+    paint();
+    const tracks = [off.captureStream(30).getVideoTracks()[0]];
+    const audioTracks = this.screenStream.getAudioTracks();
+    if (audioTracks.length) tracks.push(audioTracks[0]);
+    this.recChunks = [];
+    try { this.rec = new MediaRecorder(new MediaStream(tracks)); } catch (e) { this._compositing = false; Hub.toast("Recording not supported"); return; }
+    this.rec.ondataavailable = ev => { if (ev.data.size) this.recChunks.push(ev.data); };
+    this.rec.onstop = () => {
+      this._compositing = false;
+      const blob = new Blob(this.recChunks, { type: this.recChunks[0]?.type || "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const out = document.getElementById("col-recOut"); out.src = url; out.style.display = "block";
+      const a = document.createElement("a"); a.href = url; a.download = "umhlabatea-collab-" + Date.now() + ".webm";
+      document.body.appendChild(a); a.click(); a.remove();
+      document.getElementById("col-recBtn").classList.remove("on");
+      Hub.toast("Session recorded ✓ — downloading");
+    };
+    this.rec.start(200);
+    document.getElementById("col-recBtn").classList.add("on");
+    Hub.toast("Recording…");
+  },
+};
+
+/* ---------------- MultiTrack Recorder (Tenacity-inspired) ---------------- */
+const MultiTrack = {
+  ctx: null, tracks: [], playing: [],
+  rec: null, chunks: [], stream: null, animReq: null, t0: null, timerInt: null,
+  fx: {
+    gate:    { on: false, threshold: -40 },
+    comp:    { on: true,  threshold: -18, ratio: 4 },
+    bass:    { on: false, gain: 4 },
+    treble:  { on: false, gain: 3 },
+    noiseRed:{ on: false, freq: 120 },
+    reverb:  { on: false, amt: 0.28 },
+    limiter: { on: false },
+    norm:    { on: false },
+  },
+
+  ensureCtx() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+  },
+
+  // Build Tenacity-style FX chain on any AudioContext (live or offline)
+  _chain(ac, inputNode, destNode) {
+    const f = this.fx; let cur = inputNode;
+    // Noise Gate: extreme-ratio compressor to gate near-silence
+    if (f.gate.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = f.gate.threshold; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.001; g.release.value = 0.05; cur.connect(g); cur = g; }
+    // Compressor
+    if (f.comp.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = f.comp.threshold; g.ratio.value = f.comp.ratio; g.knee.value = 6; g.attack.value = 0.003; g.release.value = 0.25; cur.connect(g); cur = g; }
+    // Bass boost (lowshelf)
+    if (f.bass.on) { const b = ac.createBiquadFilter(); b.type = "lowshelf"; b.frequency.value = 120; b.gain.value = f.bass.gain; cur.connect(b); cur = b; }
+    // Treble boost (highshelf)
+    if (f.treble.on) { const b = ac.createBiquadFilter(); b.type = "highshelf"; b.frequency.value = 6000; b.gain.value = f.treble.gain; cur.connect(b); cur = b; }
+    // Noise Reduction: highpass to cut mic rumble below cutoff
+    if (f.noiseRed.on) { const b = ac.createBiquadFilter(); b.type = "highpass"; b.frequency.value = f.noiseRed.freq; b.Q.value = 0.7; cur.connect(b); cur = b; }
+    // Reverb: convolution with exponential-decay impulse
+    if (f.reverb.on) {
+      const conv = ac.createConvolver(); conv.buffer = Studio.impulse(ac, 1.5);
+      const dry = ac.createGain(); dry.gain.value = 1 - f.reverb.amt;
+      const wet = ac.createGain(); wet.gain.value = f.reverb.amt;
+      const mix = ac.createGain();
+      cur.connect(dry); dry.connect(mix);
+      cur.connect(conv); conv.connect(wet); wet.connect(mix);
+      cur = mix;
+    }
+    // Limiter: DynamicsCompressor at near-unity threshold with maximum ratio
+    if (f.limiter.on) { const g = ac.createDynamicsCompressor(); g.threshold.value = -1; g.ratio.value = 20; g.knee.value = 0; g.attack.value = 0.001; g.release.value = 0.05; cur.connect(g); cur = g; }
+    cur.connect(destNode);
+  },
+
+  fmtTime(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); },
+
+  async toggleRec() {
+    if (this.rec && this.rec.state === "recording") { this.stopRec(); return; }
+    try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { Hub.toast("Mic access required to record"); return; }
+    this.ensureCtx();
+    this.chunks = [];
+    try { this.rec = new MediaRecorder(this.stream); } catch (e) { this.stream.getTracks().forEach(t => t.stop()); Hub.toast("Recording not supported here"); return; }
+    this.rec.ondataavailable = ev => { if (ev.data.size) this.chunks.push(ev.data); };
+    this.rec.onstop = () => this._finishRec();
+    this.rec.start(200);
+    this.t0 = Date.now();
+    this.timerInt = setInterval(() => { const el = document.getElementById("mt-timer"); if (el) el.textContent = this.fmtTime(Date.now() - this.t0); }, 500);
+    this._startLiveWave();
+    const dot = document.getElementById("mt-dot"); if (dot) dot.classList.add("live");
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Recording…";
+    const btn = document.getElementById("mt-recBtn"); if (btn) { btn.style.color = "var(--danger)"; btn.title = "Stop"; }
+  },
+
+  stopRec() {
+    if (this.rec && this.rec.state !== "inactive") this.rec.stop();
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    clearInterval(this.timerInt); cancelAnimationFrame(this.animReq);
+    const dot = document.getElementById("mt-dot"); if (dot) dot.classList.remove("live");
+    const btn = document.getElementById("mt-recBtn"); if (btn) { btn.style.color = ""; btn.title = "Record"; }
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Processing…";
+  },
+
+  async _finishRec() {
+    if (!this.chunks.length) { const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Ready"; return; }
+    const mimeType = this.chunks[0].type || "audio/webm";
+    const blob = new Blob(this.chunks, { type: mimeType });
+    const id = uid("mt"), name = "Take " + (this.tracks.length + 1);
+    const dur = this.fmtTime(this.t0 ? Date.now() - this.t0 : 0);
+    let buf = null;
+    try { const ab = await blob.arrayBuffer(); buf = await this.ctx.decodeAudioData(ab); } catch (e) {}
+    this.tracks.push({ id, name, blob, buf, muted: false, solo: false, vol: 1 });
+    const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Ready";
+    const tmr = document.getElementById("mt-timer"); if (tmr) tmr.textContent = dur;
+    this.render(); Hub.toast(name + " recorded");
+  },
+
+  /** Add an AudioBuffer imported via Studio.importSample() as a new multitrack take. */
+  addImportedBuffer(audioBuf, name) {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+    }
+    const id = typeof uid !== 'undefined' ? uid("mt") : ("mt" + Date.now());
+    const takeName = name || "Imported Take";
+    this.tracks.push({ id, name: takeName, blob: null, buf: audioBuf, muted: false, solo: false, vol: 1 });
+    this.render();
+  },
+
+  _startLiveWave() {
+    const canvas = document.getElementById("mt-liveCanvas");
+    if (!canvas || !this.stream) return;
+    const src = this.ctx.createMediaStreamSource(this.stream);
+    const an = this.ctx.createAnalyser(); an.fftSize = 512;
+    src.connect(an);
+    const data = new Uint8Array(an.frequencyBinCount);
+    const W = canvas.width, H = canvas.height;
+    const draw = () => {
+      this.animReq = requestAnimationFrame(draw);
+      an.getByteTimeDomainData(data);
+      const cx = canvas.getContext("2d"); cx.clearRect(0, 0, W, H);
+      cx.beginPath(); cx.lineWidth = 1.5; cx.strokeStyle = "#C9A84C";
+      const sw = W / data.length;
+      data.forEach((v, i) => { const y = (v / 128) * H / 2; i === 0 ? cx.moveTo(0, y) : cx.lineTo(i * sw, y); });
+      cx.lineTo(W, H / 2); cx.stroke();
+    };
+    draw();
+  },
+
+  _drawWave(canvas, buf) {
+    if (!canvas || !buf) return;
+    const ch = buf.getChannelData(0), W = canvas.width, H = canvas.height;
+    const cx = canvas.getContext("2d"); cx.clearRect(0, 0, W, H);
+    cx.beginPath(); cx.lineWidth = 1; cx.strokeStyle = "#6C8CAE";
+    const step = Math.ceil(ch.length / W);
+    for (let x = 0; x < W; x++) {
+      let mn = 1, mx = -1;
+      for (let j = x * step; j < (x + 1) * step && j < ch.length; j++) { if (ch[j] < mn) mn = ch[j]; if (ch[j] > mx) mx = ch[j]; }
+      if (mx <= mn) mx = mn + 0.01;
+      cx.moveTo(x, ((1 + mn) / 2) * H); cx.lineTo(x, ((1 + mx) / 2) * H);
+    }
+    cx.stroke();
+  },
+
+  render() {
+    const el = document.getElementById("mt-tracks");
+    if (!el) return;
+    el.innerHTML = !this.tracks.length
+      ? `<p style="font-family:var(--mono); font-size:11px; color:#9fb2c4; padding:4px 0">No takes yet — hit ⏺ to start recording.</p>`
+      : this.tracks.map((t, i) => `
+        <div class="mt-track${t.muted ? " muted-track" : ""}">
+          <div class="row between">
+            <span style="font-family:var(--mono); font-size:12px; font-weight:500; color:#e9eef3">${Hub.esc(t.name)}</span>
+            <div class="row" style="gap:5px">
+              <button class="mini${t.muted ? " on" : ""}" onclick="MultiTrack.toggleMute(${i})" title="Mute">M</button>
+              <button class="mini${t.solo ? " on" : ""}" onclick="MultiTrack.toggleSolo(${i})" title="Solo">S</button>
+              <button class="mini" onclick="MultiTrack.deleteTrack(${i})" title="Delete">✕</button>
+            </div>
+          </div>
+          <canvas class="mt-canvas" id="mt-w-${t.id}" width="560" height="52"></canvas>
+          <div class="row" style="gap:8px; align-items:center">
+            <span style="font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:#8aa0b5; min-width:22px">Vol</span>
+            <input type="range" min="0" max="100" value="${Math.round(t.vol * 100)}" style="flex:1; accent-color:var(--gold)" oninput="MultiTrack.setVol(${i},this.value)">
+          </div>
+        </div>`).join("");
+    requestAnimationFrame(() => this.tracks.forEach(t => this._drawWave(document.getElementById("mt-w-" + t.id), t.buf)));
+
+    const fxEl = document.getElementById("mt-fxgrid");
+    if (!fxEl) return;
+    const defs = [
+      { id: "gate",    label: "Noise Gate",  sl: "threshold", min: -80, max: -20, val: this.fx.gate.threshold,               sfx: "dB" },
+      { id: "comp",    label: "Compressor",  sl: "ratio",     min: 1,   max: 20,  val: this.fx.comp.ratio,                   sfx: ":1" },
+      { id: "bass",    label: "Bass Boost",  sl: "gain",      min: -12, max: 18,  val: this.fx.bass.gain,                    sfx: "dB" },
+      { id: "treble",  label: "Treble",      sl: "gain",      min: -12, max: 18,  val: this.fx.treble.gain,                  sfx: "dB" },
+      { id: "noiseRed",label: "Noise Reduce",sl: "freq",      min: 40,  max: 800, val: this.fx.noiseRed.freq,                sfx: "Hz" },
+      { id: "reverb",  label: "Reverb",      sl: "amt",       min: 0,   max: 100, val: Math.round(this.fx.reverb.amt * 100), sfx: "%" },
+      { id: "limiter", label: "Limiter",     sl: null, hint: "−1 dBFS ceiling" },
+      { id: "norm",    label: "Normalize",   sl: null, hint: "Peak to −0.5 dBFS" },
+    ];
+    fxEl.innerHTML = defs.map(d => `<div class="mt-fxpill">
+      <div class="row between"><button class="mini${this.fx[d.id].on ? " on" : ""}" onclick="MultiTrack.toggleFx('${d.id}')">${d.label}</button>${d.sl ? `<span style="font-family:var(--mono); font-size:9px; color:#8aa0b5">${d.sfx}</span>` : ""}</div>
+      ${d.sl ? `<input type="range" min="${d.min}" max="${d.max}" value="${d.val}" style="width:100%; accent-color:var(--gold); margin-top:6px" oninput="MultiTrack.setFxVal('${d.id}','${d.sl}',this.value)">` : `<div style="font-size:10px; color:#8aa0b5; margin-top:5px; font-family:var(--mono)">${d.hint}</div>`}
+    </div>`).join("");
+  },
+
+  toggleMute(i) { const t = this.tracks[i]; if (t) { t.muted = !t.muted; this.render(); } },
+  toggleSolo(i) { const t = this.tracks[i]; if (t) { t.solo = !t.solo; this.render(); } },
+  setVol(i, v) { const t = this.tracks[i]; if (t) t.vol = +v / 100; },
+  deleteTrack(i) { this.tracks.splice(i, 1); this.render(); Hub.toast("Take deleted"); },
+  clearAll() { this.tracks = []; this.render(); Hub.toast("All takes cleared"); },
+  toggleFx(id) { if (this.fx[id]) { this.fx[id].on = !this.fx[id].on; this.render(); Hub.toast(id + (this.fx[id].on ? " on" : " off")); } },
+  setFxVal(id, key, raw) { if (this.fx[id]) this.fx[id][key] = (id === "reverb" && key === "amt") ? +raw / 100 : +raw; },
+
+  async playAll() {
+    this.ensureCtx(); this.stopAll();
+    const soloAny = this.tracks.some(t => t.solo);
+    for (const t of this.tracks) {
+      if (!t.buf || t.muted || (soloAny && !t.solo)) continue;
+      const src = this.ctx.createBufferSource(); src.buffer = t.buf;
+      const g = this.ctx.createGain(); g.gain.value = t.vol;
+      src.connect(g); this._chain(this.ctx, g, this.ctx.destination); src.start();
+      this.playing.push(src);
+    }
+    if (!this.playing.length) Hub.toast("No decoded takes to play — unmute or record some");
+  },
+
+  stopAll() { this.playing.forEach(s => { try { s.stop(); } catch (e) {} }); this.playing = []; },
+
+  async mixDown() {
+    const ready = this.tracks.filter(t => t.buf && !t.muted);
+    if (!ready.length) { Hub.toast("No decoded takes to mix — unmute or record some"); return; }
+    Hub.toast("Rendering mix…");
+    const rate = ready[0].buf.sampleRate;
+    const maxLen = Math.max(...ready.map(t => t.buf.length));
+    const off = new OfflineAudioContext(2, maxLen, rate);
+    const soloAny = this.tracks.some(t => t.solo);
+    for (const t of ready) {
+      if (soloAny && !t.solo) continue;
+      const src = off.createBufferSource(); src.buffer = t.buf;
+      const g = off.createGain();
+      if (this.fx.norm.on) {
+        const ch = t.buf.getChannelData(0); let pk = 0;
+        for (let i = 0; i < ch.length; i++) { const a = Math.abs(ch[i]); if (a > pk) pk = a; }
+        g.gain.value = pk > 0.001 ? (0.95 * t.vol) / pk : t.vol;
+      } else g.gain.value = t.vol;
+      src.connect(g); this._chain(off, g, off.destination); src.start(0);
+    }
+    try {
+      const rendered = await off.startRendering();
+      const wav = Studio.encodeWav(rendered);
+      const blob = new Blob([wav], { type: "audio/wav" }); const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "umhlabatea-mix.wav";
+      document.body.appendChild(a); a.click(); a.remove();
+      Hub.toast("Mix downloaded ✓");
+    } catch (e) { Hub.toast("Mix failed: " + (e.message || e)); }
+  },
+};
+
+document.addEventListener("DOMContentLoaded", () => { Hub.init(); Recorder.init(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "@umhlabatea/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared, framework-agnostic domain types, mock data, theme tokens, and deterministic offline AI-agent stubs for the Umhlabatea platform.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": "./index.js",
+    "./theme": "./theme/index.js",
+    "./theme/palette.cjs": "./theme/palette.cjs",
+    "./mock": "./mock/index.js",
+    "./agents": "./agents/index.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
