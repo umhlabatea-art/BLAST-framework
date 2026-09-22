@@ -27,6 +27,7 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="index" options={{ title: "Discover", tabBarIcon: ({ color }) => <TabIcon icon="🎧" color={color} /> }} />
         <Tabs.Screen name="generate" options={{ title: "Generate", tabBarIcon: ({ color }) => <TabIcon icon="✨" color={color} /> }} />
+        <Tabs.Screen name="record" options={{ title: "Record", tabBarIcon: ({ color }) => <TabIcon icon="🎙️" color={color} /> }} />
         <Tabs.Screen name="community" options={{ title: "Community", tabBarIcon: ({ color }) => <TabIcon icon="🌍" color={color} /> }} />
         <Tabs.Screen name="library" options={{ title: "Library", tabBarIcon: ({ color }) => <TabIcon icon="📚" color={color} /> }} />
         <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ color }) => <TabIcon icon="👤" color={color} /> }} />
