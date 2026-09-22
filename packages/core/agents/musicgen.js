@@ -34,12 +34,75 @@ export function stubProvider(spec) {
 }
 
 /**
+ * Replicate MusicGen provider. Submits a prediction, polls until it
+ * succeeds or fails, then returns `{ audioUrl, coverUrl, durationSec }`.
+ *
+ * Requires `REPLICATE_API_TOKEN` in the environment.
+ * Model: meta/musicgen — "large" version via Replicate's official deployment.
+ */
+export async function replicateProvider(spec) {
+  const token = typeof process !== "undefined" && process.env && process.env.REPLICATE_API_TOKEN;
+  if (!token) throw new Error("REPLICATE_API_TOKEN not set");
+
+  const MUSICGEN_MODEL = "meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eeab43";
+  const headers = {
+    Authorization: `Token ${token}`,
+    "Content-Type": "application/json",
+  };
+
+  const body = JSON.stringify({
+    version: MUSICGEN_MODEL.split(":")[1],
+    input: {
+      prompt: `${spec.genre} music, ${spec.bpm} bpm, key of ${spec.key}. ${spec.prompt}`,
+      model_version: "large",
+      output_format: "mp3",
+      normalization_strategy: "loudness",
+      duration: 30,
+    },
+  });
+
+  // Submit prediction
+  const submit = await fetch("https://api.replicate.com/v1/predictions", {
+    method: "POST",
+    headers,
+    body,
+  });
+  if (!submit.ok) {
+    const err = await submit.text();
+    throw new Error(`Replicate submit failed: ${submit.status} ${err}`);
+  }
+  const { id: predId, urls } = await submit.json();
+  const pollUrl = urls?.get || `https://api.replicate.com/v1/predictions/${predId}`;
+
+  // Poll until terminal state (up to 5 minutes)
+  const deadline = Date.now() + 5 * 60_000;
+  let delay = 2000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.5, 10_000);
+
+    const poll = await fetch(pollUrl, { headers });
+    if (!poll.ok) continue;
+    const result = await poll.json();
+
+    if (result.status === "succeeded") {
+      const audioUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      return { audioUrl, coverUrl: null, durationSec: 30 };
+    }
+    if (result.status === "failed" || result.status === "canceled") {
+      throw new Error(`Replicate prediction ${result.status}: ${result.error || ""}`);
+    }
+  }
+  throw new Error("Replicate prediction timed out after 5 minutes");
+}
+
+/**
  * Generate a track from a prompt.
  * @param {string} prompt
  * @param {object} [params] - { genre, bpm, key, artistId, artistName, provider }
  * @returns {object} a Track with a stable id derived from the inputs.
  */
-export function generate(prompt, params = {}) {
+export async function generate(prompt, params = {}) {
   if (typeof prompt !== "string" || !prompt.trim()) {
     throw new Error("prompt is required");
   }
@@ -53,8 +116,9 @@ export function generate(prompt, params = {}) {
   const title = params.title || `${pick(TITLE_HEADS, `${seed}-h`)} ${pick(TITLE_TAILS, `${seed}-t`)}`;
   const id = `gen_${Math.abs(hash(seed)).toString(36)}`;
 
-  const provider = params.provider || stubProvider;
-  const rendered = provider({ prompt, genre: genre.id, bpm, key });
+  const provider = params.provider === "replicate" ? replicateProvider
+    : (params.provider || stubProvider);
+  const rendered = await Promise.resolve(provider({ prompt, genre: genre.id, bpm, key }));
 
   return {
     id,
@@ -87,7 +151,7 @@ export async function generateJob(prompt, params = {}, onProgress) {
     if (onProgress) onProgress({ step: steps[i], progress: (i + 1) / steps.length });
     if (params.delayMs) await new Promise((r) => setTimeout(r, params.delayMs));
   }
-  return generate(prompt, params);
+  return await generate(prompt, params);
 }
 
 function hash(s) {

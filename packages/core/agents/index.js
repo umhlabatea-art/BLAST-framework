@@ -10,5 +10,5 @@ export {
   prepareIsrc,
 } from "./compliance.js";
 export { splitSale, affiliateEarning, summarize } from "./revenue.js";
-export { generate as generateTrack, generateJob, stubProvider } from "./musicgen.js";
+export { generate as generateTrack, generateJob, stubProvider, replicateProvider } from "./musicgen.js";
 export { routeAgent, AGENT_IDS } from "./tasks.js";

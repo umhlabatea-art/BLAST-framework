@@ -27,10 +27,21 @@ export function createTracksRouter({ store }) {
   });
 
   // Generate a new track from a prompt and persist it to the caller's library.
+  // Pass provider: "replicate" in the request body to use the Replicate MusicGen
+  // API (requires REPLICATE_API_TOKEN env var); omit for the deterministic stub.
   router.post("/generate", requireAuth, async (req, res) => {
-    const { prompt, genre, bpm, key, artistName } = req.body || {};
+    const { prompt, genre, bpm, key, artistName, provider } = req.body || {};
+    const resolvedProvider =
+      provider === "replicate" && process.env.REPLICATE_API_TOKEN
+        ? "replicate"
+        : undefined;
     try {
-      const track = generateTrack(prompt, { genre, bpm, key, artistId: req.user.sub, artistName });
+      const track = await generateTrack(prompt, {
+        genre, bpm, key,
+        artistId: req.user.sub,
+        artistName,
+        provider: resolvedProvider,
+      });
       const stored = await store.insert("tracks", { ...track, ownerId: req.user.sub });
       res.status(201).json({ track: stored });
     } catch (err) {

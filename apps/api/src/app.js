@@ -26,6 +26,7 @@ import { createComplianceRouter } from "./modules/compliance.js";
 import { createAgentsRouter } from "./modules/agents.js";
 import { createMarketplaceRouter } from "./modules/marketplace.js";
 import { createAdminRouter } from "./modules/admin.js";
+import { createAudioRouter } from "./modules/audio.js";
 
 export function createApp({ store = createInMemoryStore() } = {}) {
   const app = express();
@@ -49,6 +50,7 @@ export function createApp({ store = createInMemoryStore() } = {}) {
   app.use("/api", createAgentsRouter(ctx));
   app.use("/api", createMarketplaceRouter(ctx));
   app.use("/api", createAdminRouter(ctx));
+  app.use("/api", createAudioRouter(ctx));
 
   return app;
 }

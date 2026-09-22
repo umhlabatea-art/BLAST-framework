@@ -326,12 +326,42 @@
       <div class="row between" style="margin:16px 0 8px"><div class="eyebrow">Mixer &amp; EQ</div><span class="chip">3-band per channel</span></div>
       <div class="mixer" id="mixer"></div>
 
+      <!-- Audacity-quality master processing panel -->
+      <div class="card stack" style="margin-top:16px;background:var(--s2)">
+        <div class="row between" style="margin-bottom:8px">
+          <div class="eyebrow">Master DSP</div>
+          <span class="chip" id="lufsDisplay" style="font-family:var(--mono);min-width:80px">-- LUFS</span>
+        </div>
+        <div style="display:flex;gap:8px;font-size:11px;font-family:var(--mono);color:var(--t3);margin-bottom:8px">
+          <span id="lufsShortTerm">Short: --</span>
+          <span id="lufsIntegrated">Integrated: --</span>
+        </div>
+        <!-- Spectral noise gate controls -->
+        <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseLearnStart()">Learn Noise Profile</button>
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseLearnStop()">Apply Gate</button>
+          <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="Studio.noiseBypass()">Bypass Gate</button>
+        </div>
+        <!-- Spectral view canvas -->
+        <canvas id="spectralView" width="400" height="60" style="width:100%;height:60px;border-radius:6px;background:#0d0c1e;display:block;margin-bottom:4px"></canvas>
+        <div class="muted" style="font-size:10px">Frequency spectrum (log scale). Red overlay = noise floor when profile is active.</div>
+      </div>
+
       <div class="card stack" style="margin-top:16px">
         <div class="eyebrow">Bounce &amp; save</div>
         <input type="text" id="beatTitle" placeholder="Name your beat (e.g. Sunrise Log Drum)" />
+        <!-- Sample import -->
+        <div style="margin:6px 0">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Import audio sample into multitrack</label>
+          <input type="file" id="sampleImport" accept="audio/*" style="font-size:11px;color:var(--t2)" onchange="Studio.importSample(this)" />
+        </div>
         <div class="grid2">
           <button class="btn gold" onclick="Studio.bounce()">⭳ Bounce .wav</button>
           <button class="btn ghost" onclick="Studio.saveTrack()">＋ Save as track</button>
+        </div>
+        <div class="grid2" style="margin-top:6px">
+          <button class="btn ghost" onclick="Studio.exportMidi()">⭳ Export MIDI</button>
+          <button class="btn ghost" style="font-size:11px" onclick="Studio.normalizeToLufs(-14)">Normalize to -14 LUFS</button>
         </div>
         <audio id="bounceOut" controls style="width:100%; display:none"></audio>
         <div class="muted" style="font-size:11px">Bounce renders 2 bars offline to a WAV you can download (or long-press to save on mobile). Saved beats appear in Library and can be registered, optimised by the SEO agent, or annotated from the recorder.</div>
@@ -679,7 +709,8 @@ const Hub = {
     window.scrollTo({ top: 0 });
     if (zone === "voice") Recorder.renderNotes();
     if (zone === "rights") Rights.render();
-    if (zone === "studio") Studio.render();
+    if (zone === "studio") { Studio.render(); Studio.startSpectrum(); }
+    else { Studio.stopSpectrum(); }
     if (zone === "agents") Agents.renderTasks();
     if (zone === "multitrack") MultiTrack.render();
     if (zone === "collab") Collab.render();
@@ -768,6 +799,14 @@ const NOTES = [
   { n: "C5", f: 523.25 }, { n: "Bb4", f: 466.16 }, { n: "G4", f: 392.00 }, { n: "F4", f: 349.23 },
   { n: "Eb4", f: 311.13 }, { n: "C4", f: 261.63 }, { n: "Bb3", f: 233.08 }, { n: "G3", f: 196.00 },
 ];
+/** Encode MIDI variable-length quantity. */
+function midiVarLen(val) {
+  if (val < 0) val = 0;
+  const out = [val & 0x7F]; val >>= 7;
+  while (val > 0) { out.unshift((val & 0x7F) | 0x80); val >>= 7; }
+  return out;
+}
+
 const Studio = {
   ctx: null, master: null, sum: null, comp: null, analyser: null,
   delay: null, delaySend: null, fb: null, reverb: null, reverbSend: null,
@@ -790,6 +829,39 @@ const Studio = {
     this.master.connect(this.sum);
     this.sum.connect(this.comp); this.comp.connect(this.analyser); this.analyser.connect(c.destination);
     this.applyComp();
+    // Load Audacity-quality AudioWorklet processors asynchronously
+    if (c.audioWorklet) {
+      c.audioWorklet.addModule('worklets/processors.js').then(() => {
+        this._parameq   = new AudioWorkletNode(c, 'parametric-eq');
+        this._loudness  = new AudioWorkletNode(c, 'loudness-meter');
+        this._limiter   = new AudioWorkletNode(c, 'lookahead-limiter');
+        this._noisegate = new AudioWorkletNode(c, 'spectral-noise-gate');
+        // Rewire: sum → parameq → noisegate → comp → loudness → limiter → analyser → destination
+        this.sum.disconnect(this.comp);
+        this.analyser.disconnect(c.destination);
+        this.sum.connect(this._parameq);
+        this._parameq.connect(this._noisegate);
+        this._noisegate.connect(this.comp);
+        this.comp.connect(this._loudness);
+        this._loudness.connect(this._limiter);
+        this._limiter.connect(this.analyser);
+        this.analyser.connect(c.destination);
+        this._loudness.port.onmessage = ({ data }) => {
+          if (data.type !== 'lufs') return;
+          const el = document.getElementById('lufsDisplay');
+          if (el) el.textContent = data.momentary.toFixed(1) + ' LUFS';
+          const st = document.getElementById('lufsShortTerm');
+          if (st) st.textContent = 'Short: ' + data.shortTerm.toFixed(1);
+          const ig = document.getElementById('lufsIntegrated');
+          if (ig) ig.textContent = 'Integrated: ' + data.integrated.toFixed(1);
+        };
+        this._noisegate.port.onmessage = ({ data }) => {
+          if (data.type === 'profileReady') Hub.toast('Noise profile captured');
+        };
+        this._workletsReady = true;
+        Hub.toast('DSP engine ready');
+      }).catch(() => { /* AudioWorklet not available in this context */ });
+    }
     // delay send
     this.delay = c.createDelay(1.0); this.delay.delayTime.value = 60 / this.bpm / 2;
     this.fb = c.createGain(); this.fb.gain.value = 0.35;
@@ -995,6 +1067,211 @@ const Studio = {
     Home.render(); Rights.render();
     Hub.toast(`"${title}" saved to your library ✓`);
   },
+
+  /* ---- Audacity-inspired DSP controls ---- */
+  noiseLearnStart() {
+    this.ensureCtx();
+    if (!this._noisegate) { Hub.toast("DSP engine loading, try again in a moment"); return; }
+    this._noisegate.port.postMessage({ type: 'learnStart' });
+    Hub.toast("Learning noise profile... play for 1-2 s then click Apply Gate");
+  },
+  noiseLearnStop() {
+    if (!this._noisegate) { Hub.toast("DSP engine not ready"); return; }
+    this._noisegate.port.postMessage({ type: 'learnStop' });
+  },
+  noiseBypass() {
+    if (!this._noisegate) return;
+    this._noisegate.port.postMessage({ type: 'bypass' });
+    Hub.toast("Noise gate bypassed");
+  },
+
+  /** Import an audio file as a new multitrack take. */
+  async importSample(inputEl) {
+    const file = inputEl.files?.[0];
+    if (!file) return;
+    this.ensureCtx();
+    Hub.toast(`Importing ${file.name}...`);
+    try {
+      const arrayBuf = await file.arrayBuffer();
+      const audioBuf = await this.ctx.decodeAudioData(arrayBuf);
+      // Add to MultiTrack if it's open, otherwise store for next session
+      if (typeof MultiTrack !== 'undefined' && MultiTrack.ctx) {
+        MultiTrack.addImportedBuffer(audioBuf, file.name);
+        Hub.toast(`${file.name} imported into multitrack`);
+      } else {
+        this._importedBuffer = audioBuf;
+        this._importedName   = file.name;
+        Hub.toast(`${file.name} loaded. Open Multitrack Recorder to use it.`);
+      }
+    } catch (e) {
+      Hub.toast("Could not decode audio file");
+    }
+    inputEl.value = "";
+  },
+
+  /** Export step-sequencer pattern as a Standard MIDI File (Type 1). */
+  exportMidi() {
+    const ppq = 96;
+    const bpm = this.bpm || 120;
+    const stepTicks = ppq / 4; // 16th-note steps
+    const numSteps = 16;
+
+    const NOTE_MAP = {
+      kick: 36, snare: 38, hat: 42, clap: 39, log: 43, bass: 35, shkr: 46
+    };
+    const MELODY_BASE = 60; // middle C
+
+    const tracks = [];
+
+    // Tempo track
+    const uspb = Math.round(60000000 / bpm);
+    tracks.push([
+      0x00, 0xFF, 0x51, 0x03,
+      (uspb >> 16) & 0xFF, (uspb >> 8) & 0xFF, uspb & 0xFF,
+      0x00, 0xFF, 0x2F, 0x00
+    ]);
+
+    // Drum track (channel 10 = 0x09)
+    for (const [instId, note] of Object.entries(NOTE_MAP)) {
+      const pattern = this.pattern[instId];
+      if (!pattern?.some(Boolean)) continue;
+      const events = [];
+      let prevTick = 0;
+      for (let s = 0; s < numSteps; s++) {
+        if (!pattern[s]) continue;
+        const tick = s * stepTicks;
+        events.push(...midiVarLen(tick - prevTick), 0x99, note, 0x64);
+        events.push(...midiVarLen(stepTicks - 2), 0x89, note, 0x00);
+        prevTick = tick + stepTicks - 2;
+      }
+      events.push(0x00, 0xFF, 0x2F, 0x00);
+      tracks.push(events);
+    }
+
+    // Melody track (channel 1 = 0x00)
+    if (this.melody) {
+      const events = [];
+      let prevTick = 0;
+      const NOTES_FREQS = typeof NOTES !== 'undefined' ? NOTES : [];
+      for (let s = 0; s < numSteps; s++) {
+        for (let ri = 0; ri < NOTES_FREQS.length; ri++) {
+          if (!this.melody[ri]?.[s]) continue;
+          const tick = s * stepTicks;
+          const midiNote = MELODY_BASE + ri;
+          events.push(...midiVarLen(tick - prevTick), 0x90, midiNote, 0x64);
+          events.push(...midiVarLen(stepTicks - 2), 0x80, midiNote, 0x00);
+          prevTick = tick + stepTicks - 2;
+        }
+      }
+      events.push(0x00, 0xFF, 0x2F, 0x00);
+      if (events.length > 4) tracks.push(events);
+    }
+
+    // Build SMF binary
+    const header = [
+      0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+      0x00, 0x01,
+      (tracks.length >> 8) & 0xFF, tracks.length & 0xFF,
+      (ppq >> 8) & 0xFF, ppq & 0xFF
+    ];
+
+    const chunks = [header];
+    for (const trk of tracks) {
+      const data = new Uint8Array(trk);
+      chunks.push([
+        0x4D, 0x54, 0x72, 0x6B,
+        (data.length >> 24) & 0xFF, (data.length >> 16) & 0xFF,
+        (data.length >> 8) & 0xFF, data.length & 0xFF,
+        ...data
+      ]);
+    }
+
+    const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+    const midiBytes = new Uint8Array(totalLen);
+    let pos = 0;
+    for (const chunk of chunks) { midiBytes.set(chunk, pos); pos += chunk.length; }
+
+    const blob = new Blob([midiBytes], { type: "audio/midi" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = "pattern.mid"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    Hub.toast("MIDI file exported");
+  },
+
+  /** Normalize the last bounced audio to a target LUFS level (offline, approximate peak-to-LUFS). */
+  async normalizeToLufs(targetLufs) {
+    if (!this._lastBounce) { Hub.toast("Bounce a track first"); return; }
+    Hub.toast(`Normalizing to ${targetLufs} LUFS...`);
+    try {
+      const resp = await fetch(this._lastBounce);
+      const arrayBuf = await resp.arrayBuffer();
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const tmp = new AudioContext();
+      const audioBuf = await tmp.decodeAudioData(arrayBuf);
+      tmp.close();
+
+      // Compute RMS and estimate LUFS (K-weighted approximation via peak)
+      const ch = audioBuf.getChannelData(0);
+      let ms = 0;
+      for (let i = 0; i < ch.length; i++) ms += ch[i] * ch[i];
+      ms /= ch.length;
+      const currentLufs = 10 * Math.log10(Math.max(1e-10, ms)) - 0.691;
+      const gainDb = targetLufs - currentLufs;
+      const gainLin = Math.pow(10, gainDb / 20);
+
+      // Render with gain correction
+      const off = new OAC(2, audioBuf.length, audioBuf.sampleRate);
+      const src = off.createBufferSource(); src.buffer = audioBuf;
+      const g = off.createGain(); g.gain.value = Math.min(gainLin, 4.0); // cap at +12 dB
+      src.connect(g); g.connect(off.destination); src.start(0);
+      const rendered = await off.startRendering();
+      const wav = this.encodeWav(rendered);
+      const url = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+      const a = document.createElement("a"); a.href = url;
+      a.download = "normalized.wav"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      Hub.toast(`Normalized to ${targetLufs} LUFS (gain: ${gainDb.toFixed(1)} dB)`);
+    } catch (e) {
+      Hub.toast("Normalization failed");
+    }
+  },
+
+  /** Draw spectral view from AnalyserNode (called from rAF loop). */
+  _drawSpectrum() {
+    const canvas = document.getElementById("spectralView");
+    if (!canvas || !this.analyser) return;
+    const ctx2 = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    this.analyser.fftSize = 512;
+    const freqData = new Float32Array(this.analyser.frequencyBinCount);
+    this.analyser.getFloatFrequencyData(freqData);
+    ctx2.fillStyle = "#0d0c1e";
+    ctx2.fillRect(0, 0, W, H);
+    const bins = freqData.length;
+    const barW = W / bins;
+    for (let i = 0; i < bins; i++) {
+      const db   = Math.max(-96, freqData[i]);
+      const norm = (db + 96) / 96;
+      const h    = norm * H;
+      const hue  = 270 - norm * 120; // purple to green
+      ctx2.fillStyle = `hsl(${hue},70%,55%)`;
+      ctx2.fillRect(i * barW, H - h, Math.max(1, barW - 1), h);
+    }
+  },
+
+  /** Start continuous spectral view animation (called when Studio tab becomes visible). */
+  startSpectrum() {
+    if (this._spectrumRunning) return;
+    this._spectrumRunning = true;
+    const loop = () => {
+      if (!this._spectrumRunning) return;
+      this._drawSpectrum();
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  },
+  stopSpectrum() { this._spectrumRunning = false; },
 };
 
 /* ---------------- Player ---------------- */
@@ -1557,6 +1834,18 @@ const MultiTrack = {
     const lbl = document.getElementById("mt-label"); if (lbl) lbl.textContent = "Ready";
     const tmr = document.getElementById("mt-timer"); if (tmr) tmr.textContent = dur;
     this.render(); Hub.toast(name + " recorded");
+  },
+
+  /** Add an AudioBuffer imported via Studio.importSample() as a new multitrack take. */
+  addImportedBuffer(audioBuf, name) {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+    }
+    const id = typeof uid !== 'undefined' ? uid("mt") : ("mt" + Date.now());
+    const takeName = name || "Imported Take";
+    this.tracks.push({ id, name: takeName, blob: null, buf: audioBuf, muted: false, solo: false, vol: 1 });
+    this.render();
   },
 
   _startLiveWave() {
